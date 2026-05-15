@@ -1,0 +1,15 @@
+package com.emsafe.user.dto;
+
+import java.time.LocalDate;
+
+public record UpdateUserRequest(
+        String name,
+        String initials,
+        String phone,
+        String location,
+        String status,
+        String specialty,
+        String department,
+        LocalDate joinDate,
+        String password
+) {}

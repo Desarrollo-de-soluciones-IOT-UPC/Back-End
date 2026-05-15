@@ -1,0 +1,40 @@
+# ── Build output ──────────────────────────────────────────────────────────────
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ── Maven wrapper ─────────────────────────────────────────────────────────────
+.mvn/wrapper/maven-wrapper.properties
+
+# ── Compiled classes ──────────────────────────────────────────────────────────
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+spring.log
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+*.env
+application-local.properties
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+desktop.ini
