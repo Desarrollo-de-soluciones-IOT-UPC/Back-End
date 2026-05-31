@@ -2,7 +2,9 @@ package com.emsafe.dashboard.service;
 
 import com.emsafe.dashboard.dto.AlertDto;
 import com.emsafe.dashboard.dto.ChartDataDto;
+import com.emsafe.dashboard.dto.ClientRadiationDto;
 import com.emsafe.dashboard.dto.LatestWorkOrderDto;
+import com.emsafe.dashboard.dto.RadiationPointDto;
 import com.emsafe.dashboard.dto.StatsDto;
 import com.emsafe.dashboard.entity.RadiationReading;
 import com.emsafe.dashboard.repository.AlertRepository;
@@ -15,7 +17,8 @@ import com.emsafe.workorder.repository.WorkOrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -65,17 +68,14 @@ public class DashboardService {
     }
 
     public ChartDataDto getChartData() {
-        // System Activity — count work orders grouped by day (last 12 data points from seed)
         List<Integer> activitySeries = List.of(5, 14, 10, 22, 18, 30, 26, 38, 32, 45, 40, 52);
         List<String> activityCats = List.of("01 May", "", "", "10 May", "", "", "20 May", "", "", "", "30 May", "");
 
-        // Radiation Trends — from DB
         List<RadiationReading> readings = radiationReadingRepository.findAllSorted();
         List<Double> radSeries = readings.stream()
                 .map(RadiationReading::getValue)
                 .toList();
 
-        // Regional — aggregate work orders by state extracted from city field
         long tx = countByState("TX");
         long ca = countByState("CA");
         long wa = countByState("WA");
@@ -91,6 +91,94 @@ public class DashboardService {
                         List.of("TX", "CA", "WA", "NY")
                 )
         );
+    }
+
+    public List<RadiationPointDto> getRadiationMap() {
+        return radiationReadingRepository.findAllSorted().stream()
+                .map(r -> new RadiationPointDto(
+                        r.getId(),
+                        r.getLatitude(),
+                        r.getLongitude(),
+                        r.getLocation(),
+                        r.getSensorId(),
+                        r.getValue(),
+                        r.getReadingDate() != null ? r.getReadingDate().toString() : null
+                ))
+                .toList();
+    }
+
+    /**
+     * Groups radiation readings by their client user (via device → client).
+     * Returns one marker per client at the location of their highest reading.
+     */
+    public List<ClientRadiationDto> getRadiationMapByClient() {
+        List<RadiationReading> readings = radiationReadingRepository.findAllWithDeviceAndClient();
+
+        // Group readings by client; skip readings not linked to a device with a client
+        Map<Long, List<RadiationReading>> byClient = readings.stream()
+                .filter(r -> r.getDevice() != null && r.getDevice().getClient() != null)
+                .collect(Collectors.groupingBy(r -> r.getDevice().getClient().getId()));
+
+        List<ClientRadiationDto> result = new ArrayList<>();
+
+        for (Map.Entry<Long, List<RadiationReading>> entry : byClient.entrySet()) {
+            Long clientId = entry.getKey();
+            List<RadiationReading> clientReadings = entry.getValue();
+
+            // Get the client entity (same for all readings in this group)
+            var clientUser = clientReadings.get(0).getDevice().getClient();
+
+            // Max reading determines the marker color
+            double maxVal = clientReadings.stream()
+                    .mapToDouble(RadiationReading::getValue)
+                    .max().orElse(0.0);
+            String level = maxVal < 0.10 ? "safe" : maxVal < 0.30 ? "caution" : "danger";
+
+            // Marker uses the CLIENT'S registered lat/lng (their physical site)
+            Double lat = clientUser.getLatitude();
+            Double lng = clientUser.getLongitude();
+            String address = clientUser.getAddress() != null ? clientUser.getAddress() : clientUser.getLocation();
+
+            // One entry per device: highest reading for that device
+            Map<Long, List<RadiationReading>> byDevice = clientReadings.stream()
+                    .filter(r -> r.getDevice() != null)
+                    .collect(Collectors.groupingBy(r -> r.getDevice().getId()));
+
+            List<ClientRadiationDto.DeviceReadingDto> deviceDtos = byDevice.entrySet().stream()
+                    .map(de -> {
+                        RadiationReading best = de.getValue().stream()
+                                .max(Comparator.comparingDouble(RadiationReading::getValue))
+                                .orElse(null);
+                        if (best == null) return null;
+                        return new ClientRadiationDto.DeviceReadingDto(
+                                best.getDevice().getId(),
+                                best.getDevice().getName(),
+                                best.getDevice().getType(),
+                                best.getDevice().getSerialNumber(),
+                                best.getDevice().getLocation(), // zone/room within the facility
+                                best.getDevice().getStatus(),
+                                best.getValue(),
+                                best.getReadingDate() != null ? best.getReadingDate().toString() : null
+                        );
+                    })
+                    .filter(Objects::nonNull)
+                    .sorted(Comparator.comparingDouble(ClientRadiationDto.DeviceReadingDto::latestValue).reversed())
+                    .toList();
+
+            result.add(new ClientRadiationDto(
+                    clientId,
+                    clientUser.getName(),
+                    lat,
+                    lng,
+                    address,
+                    maxVal,
+                    level,
+                    deviceDtos
+            ));
+        }
+
+        result.sort(Comparator.comparingDouble(ClientRadiationDto::maxValue).reversed());
+        return result;
     }
 
     private long countByState(String state) {

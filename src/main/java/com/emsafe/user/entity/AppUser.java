@@ -54,4 +54,15 @@ public class AppUser {
     private LocalDate joinDate;
 
     private LocalDateTime lastLogin;
+
+    /** Registered address (human-readable) */
+    @Column(length = 300)
+    private String address;
+
+    /** Geographic coordinates of the client's registered site */
+    @Column
+    private Double latitude;
+
+    @Column
+    private Double longitude;
 }

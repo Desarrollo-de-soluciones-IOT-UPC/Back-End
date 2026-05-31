@@ -2,7 +2,9 @@ package com.emsafe.dashboard.controller;
 
 import com.emsafe.dashboard.dto.AlertDto;
 import com.emsafe.dashboard.dto.ChartDataDto;
+import com.emsafe.dashboard.dto.ClientRadiationDto;
 import com.emsafe.dashboard.dto.LatestWorkOrderDto;
+import com.emsafe.dashboard.dto.RadiationPointDto;
 import com.emsafe.dashboard.dto.StatsDto;
 import com.emsafe.dashboard.service.DashboardService;
 import com.emsafe.shared.dto.ApiResponse;
@@ -39,5 +41,15 @@ public class DashboardController {
     @GetMapping("/chart-data")
     public ResponseEntity<ApiResponse<ChartDataDto>> getChartData() {
         return ResponseEntity.ok(ApiResponse.ok(dashboardService.getChartData()));
+    }
+
+    @GetMapping("/radiation-map")
+    public ResponseEntity<ApiResponse<List<RadiationPointDto>>> getRadiationMap() {
+        return ResponseEntity.ok(ApiResponse.ok(dashboardService.getRadiationMap()));
+    }
+
+    @GetMapping("/radiation-map/by-client")
+    public ResponseEntity<ApiResponse<List<ClientRadiationDto>>> getRadiationMapByClient() {
+        return ResponseEntity.ok(ApiResponse.ok(dashboardService.getRadiationMapByClient()));
     }
 }

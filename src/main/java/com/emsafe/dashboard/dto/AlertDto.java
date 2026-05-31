@@ -8,7 +8,9 @@ public record AlertDto(
         String icon,
         String title,
         String description,
-        String time
+        String time,
+        Boolean resolved,
+        String resolvedAt
 ) {
     public static AlertDto from(Alert a) {
         return new AlertDto(
@@ -17,7 +19,9 @@ public record AlertDto(
                 a.getIcon(),
                 a.getTitle(),
                 a.getDescription(),
-                a.getRelativeTime()
+                a.getRelativeTime(),
+                a.getResolved(),
+                a.getResolvedAt() != null ? a.getResolvedAt().toString() : null
         );
     }
 }
