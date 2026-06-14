@@ -3,6 +3,7 @@ package com.emsafe.dashboard.repository;
 import com.emsafe.dashboard.entity.RadiationReading;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -16,4 +17,11 @@ public interface RadiationReadingRepository extends JpaRepository<RadiationReadi
 
     @Query("SELECT AVG(r.value) FROM RadiationReading r")
     Double findAverage();
+
+    // ─── Client (mobile) queries ─────────────────────────────────────────────
+    @Query("SELECT r FROM RadiationReading r JOIN FETCH r.device d WHERE d.client.id = :clientId ORDER BY r.readingDate DESC")
+    List<RadiationReading> findByClientIdWithDevice(@Param("clientId") Long clientId);
+
+    @Query("SELECT r FROM RadiationReading r JOIN FETCH r.device d WHERE d.id = :deviceId ORDER BY r.readingDate DESC")
+    List<RadiationReading> findByDeviceIdWithDevice(@Param("deviceId") Long deviceId);
 }

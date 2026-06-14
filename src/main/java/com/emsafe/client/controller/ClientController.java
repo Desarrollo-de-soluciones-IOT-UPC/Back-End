@@ -1,0 +1,98 @@
+package com.emsafe.client.controller;
+
+import com.emsafe.auth.security.JwtUtil;
+import com.emsafe.client.dto.*;
+import com.emsafe.client.service.ClientService;
+import com.emsafe.shared.dto.ApiResponse;
+import com.emsafe.user.dto.ChangePasswordRequest;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * Endpoints for the EMSafe mobile app (clients). Every request is scoped to the
+ * authenticated client via the userId carried in the JWT — same pattern as the
+ * technician portal (/api/tech/**).
+ */
+@RestController
+@RequestMapping("/api/client")
+@RequiredArgsConstructor
+public class ClientController {
+
+    private final ClientService clientService;
+    private final JwtUtil jwtUtil;
+
+    // ─── Profile ────────────────────────────────────────────────────────────
+
+    @GetMapping("/profile")
+    public ResponseEntity<ApiResponse<ClientProfileDto>> getProfile(HttpServletRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(clientService.getProfile(extractUserId(request))));
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse<ClientProfileDto>> updateProfile(
+            HttpServletRequest request,
+            @RequestBody UpdateClientProfileRequest req) {
+        return ResponseEntity.ok(ApiResponse.ok("Profile updated",
+                clientService.updateProfile(extractUserId(request), req)));
+    }
+
+    @PatchMapping("/password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            HttpServletRequest request,
+            @Valid @RequestBody ChangePasswordRequest req) {
+        clientService.changePassword(extractUserId(request), req);
+        return ResponseEntity.ok(ApiResponse.ok("Password updated", null));
+    }
+
+    // ─── Devices ──────────────────────────────────────────────────────────────
+
+    @GetMapping("/devices")
+    public ResponseEntity<ApiResponse<List<ClientDeviceDto>>> getDevices(HttpServletRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(clientService.getDevices(extractUserId(request))));
+    }
+
+    @GetMapping("/devices/{id}")
+    public ResponseEntity<ApiResponse<ClientDeviceDto>> getDevice(
+            HttpServletRequest request, @PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(clientService.getDeviceDetail(extractUserId(request), id)));
+    }
+
+    @GetMapping("/devices/{id}/readings")
+    public ResponseEntity<ApiResponse<List<ClientReadingDto>>> getDeviceReadings(
+            HttpServletRequest request, @PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(clientService.getDeviceReadings(extractUserId(request), id)));
+    }
+
+    // ─── Readings / Dashboard / Alerts ────────────────────────────────────────
+
+    @GetMapping("/readings")
+    public ResponseEntity<ApiResponse<List<ClientReadingDto>>> getReadings(HttpServletRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(clientService.getReadings(extractUserId(request))));
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<ApiResponse<ClientDashboardDto>> getDashboard(HttpServletRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(clientService.getDashboard(extractUserId(request))));
+    }
+
+    @GetMapping("/alerts")
+    public ResponseEntity<ApiResponse<List<ClientAlertDto>>> getAlerts(HttpServletRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(clientService.getAlerts(extractUserId(request))));
+    }
+
+    // ─── Private ──────────────────────────────────────────────────────────────
+
+    private Long extractUserId(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (StringUtils.hasText(header) && header.startsWith("Bearer ")) {
+            return jwtUtil.extractUserId(header.substring(7));
+        }
+        return null;
+    }
+}
