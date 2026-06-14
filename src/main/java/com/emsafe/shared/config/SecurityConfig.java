@@ -49,6 +49,8 @@ public class SecurityConfig {
                         ).permitAll()
                         // Tech endpoints — accessible by TECHNICIAN and ADMIN
                         .requestMatchers("/api/tech/**").hasAnyRole("TECHNICIAN", "ADMIN")
+                        // Client (mobile app) endpoints — accessible by CLIENT and ADMIN
+                        .requestMatchers("/api/client/**").hasAnyRole("CLIENT", "ADMIN")
                         // Profile endpoints — accessible by TECHNICIAN and ADMIN (own account)
                         .requestMatchers(HttpMethod.GET,   "/api/users/profile").hasAnyRole("TECHNICIAN", "ADMIN")
                         .requestMatchers(HttpMethod.PUT,   "/api/users/*").hasAnyRole("TECHNICIAN", "ADMIN")

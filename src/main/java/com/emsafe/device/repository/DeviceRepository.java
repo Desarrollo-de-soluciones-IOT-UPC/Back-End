@@ -15,4 +15,9 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
 
     @Query("SELECT d FROM Device d LEFT JOIN FETCH d.client WHERE d.id = :id")
     java.util.Optional<Device> findByIdWithClient(@org.springframework.data.repository.query.Param("id") Long id);
+
+    // ─── Client (mobile) queries ─────────────────────────────────────────────
+    List<Device> findByClient_IdOrderByIdAsc(Long clientId);
+
+    java.util.Optional<Device> findByIdAndClient_Id(Long id, Long clientId);
 }
