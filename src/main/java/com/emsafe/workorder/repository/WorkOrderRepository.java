@@ -5,6 +5,7 @@ import com.emsafe.workorder.entity.WorkOrderStatus;
 import com.emsafe.workorder.entity.WorkOrderType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,32 +26,31 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
 
     @Query("""
             SELECT wo FROM WorkOrder wo
-            WHERE (:status IS NULL OR wo.status = :status)
+            WHERE wo.status IN :statuses
               AND (:type IS NULL OR wo.type = :type)
               AND (:search IS NULL
                    OR LOWER(wo.client) LIKE LOWER(CONCAT('%', :search, '%'))
                    OR LOWER(wo.orderId) LIKE LOWER(CONCAT('%', :search, '%'))
                    OR LOWER(wo.location) LIKE LOWER(CONCAT('%', :search, '%')))
-            ORDER BY wo.scheduledDate DESC
             """)
     List<WorkOrder> search(
-            @Param("status") WorkOrderStatus status,
+            @Param("statuses") List<WorkOrderStatus> statuses,
             @Param("type") WorkOrderType type,
-            @Param("search") String search
+            @Param("search") String search,
+            Sort sort
     );
 
     @Query("""
             SELECT wo FROM WorkOrder wo
-            WHERE (:status IS NULL OR wo.status = :status)
+            WHERE wo.status IN :statuses
               AND (:type IS NULL OR wo.type = :type)
               AND (:search IS NULL
                    OR LOWER(wo.client) LIKE LOWER(CONCAT('%', :search, '%'))
                    OR LOWER(wo.orderId) LIKE LOWER(CONCAT('%', :search, '%'))
                    OR LOWER(wo.location) LIKE LOWER(CONCAT('%', :search, '%')))
-            ORDER BY wo.scheduledDate DESC
             """)
     Page<WorkOrder> searchPaged(
-            @Param("status") WorkOrderStatus status,
+            @Param("statuses") List<WorkOrderStatus> statuses,
             @Param("type") WorkOrderType type,
             @Param("search") String search,
             Pageable pageable
