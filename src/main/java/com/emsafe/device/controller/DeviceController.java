@@ -20,8 +20,10 @@ public class DeviceController {
     private final DeviceService deviceService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<DeviceDto>>> getAll() {
-        return ResponseEntity.ok(ApiResponse.ok(deviceService.getAll()));
+    public ResponseEntity<ApiResponse<List<DeviceDto>>> getAll(
+            @RequestParam(required = false) Long clientId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                clientId != null ? deviceService.getByClient(clientId) : deviceService.getAll()));
     }
 
     @GetMapping("/{id}")

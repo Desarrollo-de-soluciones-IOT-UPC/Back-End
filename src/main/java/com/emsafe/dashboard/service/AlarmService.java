@@ -5,18 +5,23 @@ import com.emsafe.dashboard.dto.CreateAlarmRequest;
 import com.emsafe.dashboard.entity.Alert;
 import com.emsafe.dashboard.repository.AlertRepository;
 import com.emsafe.shared.exception.ResourceNotFoundException;
+import com.emsafe.user.entity.AppUser;
+import com.emsafe.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class AlarmService {
 
     private final AlertRepository alertRepository;
+    private final UserRepository userRepository;
 
     public List<AlertDto> getAll() {
         return alertRepository.findAllByOrderByCreatedAtDesc()
@@ -25,13 +30,29 @@ public class AlarmService {
 
     @Transactional
     public AlertDto create(CreateAlarmRequest req) {
+        boolean specific = "specific".equalsIgnoreCase(req.recipientType());
+
         Alert alert = Alert.builder()
                 .type(req.type())
                 .icon(req.icon())
                 .title(req.title())
                 .description(req.description())
-                .relativeTime(req.relativeTime())
+                .relativeTime(StringUtils.hasText(req.relativeTime()) ? req.relativeTime() : "Just now")
+                .recipientType(specific ? "specific" : "all")
+                .sensor(req.sensor())
                 .build();
+
+        if (specific && req.clientIds() != null && !req.clientIds().isEmpty()) {
+            List<AppUser> clients = userRepository.findAllById(req.clientIds());
+            alert.getRecipientClientIds().addAll(
+                    clients.stream().map(AppUser::getId).toList());
+            alert.setClientName(clients.stream()
+                    .map(AppUser::getName)
+                    .collect(Collectors.joining(", ")));
+        } else {
+            alert.setClientName("All clients");
+        }
+
         return AlertDto.from(alertRepository.save(alert));
     }
 

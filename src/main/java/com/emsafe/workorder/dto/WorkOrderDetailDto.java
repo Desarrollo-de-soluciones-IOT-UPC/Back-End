@@ -1,6 +1,8 @@
 package com.emsafe.workorder.dto;
 
+import com.emsafe.device.dto.DeviceDto;
 import com.emsafe.workorder.entity.WorkOrder;
+import com.emsafe.workorder.entity.WorkOrderEvidence;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -14,6 +16,7 @@ public record WorkOrderDetailDto(
         String type,
         String status,
         String client,
+        Long clientId,
         String location,
         LocalDate scheduledDate,
         String scheduledTime,
@@ -28,23 +31,40 @@ public record WorkOrderDetailDto(
         Integer expectedSensors,
         String assetId,
         String technicianNotes,
+        String completedAt,
+        String cancellationReason,
         List<String> requiredTools,
         List<SensorDto> sensors,
-        List<ActivityLogDto> activityLog
+        List<ActivityLogDto> activityLog,
+        List<String> evidence,
+        List<MaintenanceActionDto> maintenanceActions,
+        List<DeviceDto> clientDevices
 ) {
+    private static String typeDisplay(WorkOrder wo) {
+        String n = wo.getType().name();
+        return n.charAt(0) + n.substring(1).toLowerCase();
+    }
+
+    /** List view — no client devices resolved. */
     public static WorkOrderDetailDto from(WorkOrder wo) {
+        return from(wo, List.of());
+    }
+
+    /** Detail view — clientDevices resolved by the service. */
+    public static WorkOrderDetailDto from(WorkOrder wo, List<DeviceDto> clientDevices) {
         return new WorkOrderDetailDto(
                 wo.getId(),
                 wo.getOrderId(),
-                wo.getType().name().charAt(0) + wo.getType().name().substring(1).toLowerCase(),
+                typeDisplay(wo),
                 wo.getStatus().name().toLowerCase().replace("_", "-"),
                 wo.getClient(),
+                wo.getClientUser() != null ? wo.getClientUser().getId() : null,
                 wo.getLocation(),
                 wo.getScheduledDate(),
                 wo.getScheduledTime(),
                 wo.getTechnician() != null ? wo.getTechnician().getId() : null,
                 wo.getPriority(),
-                wo.getType().name().charAt(0) + wo.getType().name().substring(1).toLowerCase(),
+                typeDisplay(wo),
                 wo.getContactName(),
                 wo.getContactRole(),
                 wo.getContactPhone(),
@@ -53,9 +73,14 @@ public record WorkOrderDetailDto(
                 wo.getExpectedSensors(),
                 wo.getAssetId(),
                 wo.getTechnicianNotes(),
+                wo.getCompletedAt() != null ? wo.getCompletedAt().toString() : null,
+                wo.getCancellationReason(),
                 wo.getRequiredTools(),
                 wo.getSensors().stream().map(SensorDto::from).toList(),
-                wo.getActivityLog().stream().map(ActivityLogDto::from).toList()
+                wo.getActivityLog().stream().map(ActivityLogDto::from).toList(),
+                wo.getEvidence().stream().map(WorkOrderEvidence::getImage).toList(),
+                wo.getMaintenanceActions().stream().map(MaintenanceActionDto::from).toList(),
+                clientDevices
         );
     }
 }

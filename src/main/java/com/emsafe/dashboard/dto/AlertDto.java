@@ -10,7 +10,10 @@ public record AlertDto(
         String description,
         String time,
         Boolean resolved,
-        String resolvedAt
+        String resolvedAt,
+        String recipientType,
+        String clientName,
+        String sensor
 ) {
     public static AlertDto from(Alert a) {
         return new AlertDto(
@@ -21,7 +24,10 @@ public record AlertDto(
                 a.getDescription(),
                 a.getRelativeTime(),
                 a.getResolved(),
-                a.getResolvedAt() != null ? a.getResolvedAt().toString() : null
+                a.getResolvedAt() != null ? a.getResolvedAt().toString() : null,
+                a.getRecipientType(),
+                a.getClientName(),
+                a.getSensor()
         );
     }
 }

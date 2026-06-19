@@ -116,7 +116,10 @@ public class DataInitializer implements CommandLineRunner {
                         .role(Role.CLIENT).status("active")
                         .joinDate(LocalDate.of(2023, 10, 1))
                         .address("Av. Universitaria 1801, San Miguel, Lima")
-                        .latitude(-12.0774).longitude(-77.0869).build(),
+                        .latitude(-12.0774).longitude(-77.0869)
+                        .clientType("company").country("Perú").industry("educacion").taxId("20100000001")
+                        .contactName("Dr. Quantum Ops").contactEmail("ops@quantumdyn.com").contactPhone("+51-1-555-0701")
+                        .build(),
 
                 // Harbor Medical Center — private clinic in San Isidro
                 AppUser.builder()
@@ -126,7 +129,10 @@ public class DataInitializer implements CommandLineRunner {
                         .role(Role.CLIENT).status("active")
                         .joinDate(LocalDate.of(2023, 11, 5))
                         .address("Av. Javier Prado Oeste 499, San Isidro, Lima")
-                        .latitude(-12.0960).longitude(-77.0442).build(),
+                        .latitude(-12.0960).longitude(-77.0442)
+                        .clientType("company").country("Perú").industry("salud").taxId("20100000002")
+                        .contactName("Facilities Harbor").contactEmail("facilities@harbormed.com").contactPhone("+51-1-555-0702")
+                        .build(),
 
                 // Global Pharma Corp — industrial plant in Villa El Salvador
                 AppUser.builder()
@@ -136,7 +142,10 @@ public class DataInitializer implements CommandLineRunner {
                         .role(Role.CLIENT).status("active")
                         .joinDate(LocalDate.of(2024, 2, 1))
                         .address("Av. El Sol 455, Villa El Salvador, Lima")
-                        .latitude(-12.2100).longitude(-76.9500).build()
+                        .latitude(-12.2100).longitude(-76.9500)
+                        .clientType("company").country("Perú").industry("manufactura").taxId("20100000003")
+                        .contactName("Safety Pharma").contactEmail("safety@globalpharma.com").contactPhone("+51-1-555-0703")
+                        .build()
         );
         userRepository.saveAll(users);
         log.info("Seeded {} users", users.size());
@@ -174,7 +183,7 @@ public class DataInitializer implements CommandLineRunner {
 
                 Device.builder().name("Sensor EM — Laboratorio Químico").type("Sensor")
                         .location("Laboratorio Químico — Piso 3")
-                        .status("active").serialNumber("QD-SN-003")
+                        .status("requires-maintenance").serialNumber("QD-SN-003")
                         .installDate(LocalDate.of(2025, 2, 20)).client(quantum).build(),
 
                 Device.builder().name("Sensor EM — Pasillo Principal").type("Sensor")
@@ -221,7 +230,7 @@ public class DataInitializer implements CommandLineRunner {
 
                 Device.builder().name("Monitor EM — Radiología Intervencionista").type("Monitor")
                         .location("Radiología Intervencionista — Piso 2")
-                        .status("maintenance").serialNumber("HM-MN-002")
+                        .status("requires-maintenance").serialNumber("HM-MN-002")
                         .installDate(LocalDate.of(2025, 2, 14)).client(harbor).build(),
 
                 // ── Global Pharma Corp — Av. El Sol 455, Villa El Salvador ──
@@ -233,7 +242,7 @@ public class DataInitializer implements CommandLineRunner {
 
                 Device.builder().name("Sensor EM — Control de Calidad").type("Sensor")
                         .location("Laboratorio de Control de Calidad — Piso 1")
-                        .status("active").serialNumber("GP-SN-002")
+                        .status("requires-maintenance").serialNumber("GP-SN-002")
                         .installDate(LocalDate.of(2025, 3, 22)).client(pharma).build(),
 
                 Device.builder().name("Monitor EM — Almacén de Materias Primas").type("Monitor")
@@ -633,6 +642,44 @@ public class DataInitializer implements CommandLineRunner {
                 "Lab coat and goggles required. Escort from security.",
                 10, "GPH-LWC-F3", "",
                 List.of("Standard Toolkit", "Calibration Rig B"));
+
+        // ── Demo orders linked to real client users (enable the tech device flows) ──
+        AppUser quantum = userRepository.findByEmail("ops@quantumdyn.com").orElse(null);
+        AppUser harbor  = userRepository.findByEmail("facilities@harbormed.com").orElse(null);
+        AppUser pharma  = userRepository.findByEmail("safety@globalpharma.com").orElse(null);
+
+        WorkOrder woInstall = buildDetailedWo("WO-6001", WorkOrderType.INSTALLATION, WorkOrderStatus.PENDING,
+                "Quantum Dynamics Lab", "Av. Universitaria 1801, San Miguel, Lima",
+                LocalDate.of(2026, 6, 18), "09:00 AM", marcus,
+                "Urgent", "Dr. Quantum Ops", "Lab Director",
+                "+51-1-555-0701", "ops@quantumdyn.com",
+                "Report to PUCP security. Escort required to the research wing.",
+                4, "QD-INS-01", "",
+                List.of("Standard Toolkit"));
+        woInstall.setClientUser(quantum);
+        workOrderRepository.save(woInstall);
+
+        WorkOrder woMaint = buildDetailedWo("WO-6002", WorkOrderType.MAINTENANCE, WorkOrderStatus.PENDING,
+                "Harbor Medical Center", "Av. Javier Prado Oeste 499, San Isidro, Lima",
+                LocalDate.of(2026, 6, 19), "11:00 AM", marcus,
+                "Urgent", "Facilities Harbor", "Facilities Manager",
+                "+51-1-555-0702", "facilities@harbormed.com",
+                "Check in at reception. Do not enter rooms while equipment is in use.",
+                7, "HM-MNT-01", "",
+                List.of("Standard Toolkit", "Diagnostic Toolkit"));
+        woMaint.setClientUser(harbor);
+        workOrderRepository.save(woMaint);
+
+        WorkOrder woCollect = buildDetailedWo("WO-6003", WorkOrderType.COLLECTION, WorkOrderStatus.PENDING,
+                "Global Pharma Corp", "Av. El Sol 455, Villa El Salvador, Lima",
+                LocalDate.of(2026, 6, 20), "08:30 AM", marcus,
+                "Standard", "Safety Pharma", "Safety Officer",
+                "+51-1-555-0703", "safety@globalpharma.com",
+                "Full plant protocol. Suit-up at entry.",
+                6, "GP-COL-01", "",
+                List.of("Standard Toolkit", "Removal Toolkit"));
+        woCollect.setClientUser(pharma);
+        workOrderRepository.save(woCollect);
 
         log.info("Seeded work orders");
     }

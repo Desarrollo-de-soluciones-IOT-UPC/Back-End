@@ -14,6 +14,10 @@ public record CreateWorkOrderRequest(
         @NotBlank(message = "Client is required")
         String client,
 
+        // Optional reference to the client user — enables resolving the client's
+        // devices in Maintenance / Collection flows.
+        Long clientId,
+
         String location,
         String city,
         LocalDate scheduledDate,
@@ -29,5 +33,7 @@ public record CreateWorkOrderRequest(
         String accessInstructions,
         Integer expectedSensors,
         String assetId,
+        // Admin notes — persisted on the work order and shown to the technician.
+        String notes,
         List<String> requiredTools
 ) {}

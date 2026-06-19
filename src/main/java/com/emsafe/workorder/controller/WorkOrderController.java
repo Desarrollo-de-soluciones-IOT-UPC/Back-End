@@ -28,17 +28,30 @@ public class WorkOrderController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(ApiResponse.ok(workOrderService.findAllPaged(status, type, search, page, size)));
+        return ResponseEntity.ok(ApiResponse.ok(workOrderService.findAllPaged(status, type, search, sort, page, size)));
     }
 
     @GetMapping("/api/work-orders")
     public ResponseEntity<ApiResponse<List<WorkOrderDto>>> getAll(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String type,
-            @RequestParam(required = false) String search) {
-        return ResponseEntity.ok(ApiResponse.ok(workOrderService.findAll(status, type, search)));
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String sort) {
+        return ResponseEntity.ok(ApiResponse.ok(workOrderService.findAll(status, type, search, sort)));
+    }
+
+    @GetMapping("/api/work-orders/{id}")
+    public ResponseEntity<ApiResponse<WorkOrderEditDto>> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(workOrderService.findEditById(id)));
+    }
+
+    /** Full read-only detail (admin) — used by the History detail view. */
+    @GetMapping("/api/work-orders/{id}/detail")
+    public ResponseEntity<ApiResponse<WorkOrderDetailDto>> getFullDetail(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(workOrderService.findDetailById(id)));
     }
 
     @PostMapping("/api/work-orders")
@@ -48,9 +61,18 @@ public class WorkOrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok("Work order created", created));
     }
 
+    @PutMapping("/api/work-orders/{id}")
+    public ResponseEntity<ApiResponse<WorkOrderDto>> update(
+            @PathVariable Long id,
+            @RequestBody UpdateWorkOrderRequest req) {
+        return ResponseEntity.ok(ApiResponse.ok("Work order updated", workOrderService.update(id, req)));
+    }
+
     @DeleteMapping("/api/work-orders/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
-        workOrderService.delete(id);
+    public ResponseEntity<ApiResponse<Void>> delete(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason) {
+        workOrderService.delete(id, reason);
         return ResponseEntity.ok(ApiResponse.ok("Work order deleted", null));
     }
 

@@ -27,5 +27,6 @@ public record CreateUserRequest(
         String location,
         String specialty,
         String department,
-        LocalDate joinDate
+        LocalDate joinDate,
+        String notes
 ) {}

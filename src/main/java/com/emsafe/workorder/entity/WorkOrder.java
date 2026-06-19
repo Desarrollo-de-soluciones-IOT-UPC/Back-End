@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +37,12 @@ public class WorkOrder {
 
     @Column(nullable = false, length = 150)
     private String client;
+
+    // Client reference (nullable — legacy orders only carry the client name string).
+    // Used to resolve the client's devices in Maintenance / Collection flows.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_user_id")
+    private AppUser clientUser;
 
     @Column(length = 200)
     private String location;
@@ -86,6 +93,14 @@ public class WorkOrder {
     @Column(columnDefinition = "TEXT")
     private String technicianNotes;
 
+    // Timestamp set when the work order is marked Completed by the technician.
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    // Reason captured when an order is Cancelled / Deleted by the admin.
+    @Column(name = "cancellation_reason", columnDefinition = "TEXT")
+    private String cancellationReason;
+
     @ElementCollection
     @CollectionTable(name = "work_order_tools",
             joinColumns = @JoinColumn(name = "work_order_id"))
@@ -108,4 +123,20 @@ public class WorkOrder {
     @BatchSize(size = 30)
     @Builder.Default
     private List<ActivityLogEntry> activityLog = new ArrayList<>();
+
+    @OneToMany(mappedBy = "workOrder",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    @OrderBy("id ASC")
+    @BatchSize(size = 30)
+    @Builder.Default
+    private List<WorkOrderEvidence> evidence = new ArrayList<>();
+
+    @OneToMany(mappedBy = "workOrder",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    @OrderBy("id ASC")
+    @BatchSize(size = 30)
+    @Builder.Default
+    private List<MaintenanceAction> maintenanceActions = new ArrayList<>();
 }
