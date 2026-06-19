@@ -68,6 +68,7 @@ public class UserService {
                 .department(req.department())
                 .joinDate(req.joinDate() != null ? req.joinDate() : LocalDate.now())
                 .status("active")
+                .notes(req.notes())
                 .build();
 
         return UserDto.from(userRepository.save(user));
@@ -86,6 +87,16 @@ public class UserService {
         if (StringUtils.hasText(req.specialty())) user.setSpecialty(req.specialty());
         if (StringUtils.hasText(req.department())) user.setDepartment(req.department());
         if (req.joinDate() != null) user.setJoinDate(req.joinDate());
+        if (req.notes() != null) user.setNotes(req.notes());
+        // Client (company / individual) profile fields — allow clearing with non-null empty.
+        if (req.address() != null) user.setAddress(req.address());
+        if (req.clientType() != null) user.setClientType(req.clientType());
+        if (req.taxId() != null) user.setTaxId(req.taxId());
+        if (req.industry() != null) user.setIndustry(req.industry());
+        if (req.country() != null) user.setCountry(req.country());
+        if (req.contactName() != null) user.setContactName(req.contactName());
+        if (req.contactEmail() != null) user.setContactEmail(req.contactEmail());
+        if (req.contactPhone() != null) user.setContactPhone(req.contactPhone());
         if (StringUtils.hasText(req.password())) {
             user.setPasswordHash(passwordEncoder.encode(req.password()));
         }

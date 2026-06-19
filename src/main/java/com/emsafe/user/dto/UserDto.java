@@ -15,7 +15,16 @@ public record UserDto(
         String status,
         String specialty,
         String department,
-        LocalDate joinDate
+        LocalDate joinDate,
+        String notes,
+        String address,
+        String clientType,
+        String taxId,
+        String industry,
+        String country,
+        String contactName,
+        String contactEmail,
+        String contactPhone
 ) {
     public static UserDto from(AppUser u) {
         // Serialize role as title-case to match Angular frontend ("Admin", "Technician", "Client")
@@ -33,7 +42,16 @@ public record UserDto(
                 u.getStatus(),
                 u.getSpecialty(),
                 u.getDepartment(),
-                u.getJoinDate()
+                u.getJoinDate(),
+                u.getNotes(),
+                u.getAddress(),
+                u.getClientType(),
+                u.getTaxId(),
+                u.getIndustry(),
+                u.getCountry(),
+                u.getContactName(),
+                u.getContactEmail(),
+                u.getContactPhone()
         );
     }
 }

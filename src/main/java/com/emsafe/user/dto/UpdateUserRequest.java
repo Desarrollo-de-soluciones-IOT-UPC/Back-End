@@ -11,5 +11,14 @@ public record UpdateUserRequest(
         String specialty,
         String department,
         LocalDate joinDate,
-        String password
+        String password,
+        String notes,
+        String address,
+        String clientType,
+        String taxId,
+        String industry,
+        String country,
+        String contactName,
+        String contactEmail,
+        String contactPhone
 ) {}
