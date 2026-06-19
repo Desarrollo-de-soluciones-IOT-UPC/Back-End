@@ -20,4 +20,9 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
     List<Device> findByClient_IdOrderByIdAsc(Long clientId);
 
     java.util.Optional<Device> findByIdAndClient_Id(Long id, Long clientId);
+
+    // ─── Work-order flow queries ─────────────────────────────────────────────
+    List<Device> findByClient_IdAndStatusOrderByIdAsc(Long clientId, String status);
+
+    long countByStatus(String status);
 }

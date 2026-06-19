@@ -26,6 +26,10 @@ public class DeviceService {
         return deviceRepository.findAllWithClient().stream().map(DeviceDto::from).toList();
     }
 
+    public List<DeviceDto> getByClient(Long clientId) {
+        return deviceRepository.findByClient_IdOrderByIdAsc(clientId).stream().map(DeviceDto::from).toList();
+    }
+
     public DeviceDto getById(Long id) {
         return deviceRepository.findByIdWithClient(id)
                 .map(DeviceDto::from)
