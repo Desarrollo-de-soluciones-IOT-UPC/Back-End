@@ -14,7 +14,8 @@ public record HistoryDto(
         String serviceType,
         String technician,
         String technicianInitials,
-        String status
+        String status,
+        Long workOrderId
 ) {
     public static HistoryDto from(History h) {
         return new HistoryDto(
@@ -27,7 +28,8 @@ public record HistoryDto(
                 h.getServiceType(),
                 h.getTechnician(),
                 h.getTechnicianInitials(),
-                h.getStatus()
+                h.getStatus(),
+                h.getWorkOrderId()
         );
     }
 }

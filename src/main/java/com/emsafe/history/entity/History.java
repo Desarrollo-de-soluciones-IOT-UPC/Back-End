@@ -48,4 +48,8 @@ public class History {
 
     /** ID del técnico asignado — usado para filtrar por técnico en el portal tech */
     private Long technicianId;
+
+    /** Reference to the live work order — used to load the full detail view. */
+    @Column(name = "work_order_id")
+    private Long workOrderId;
 }
