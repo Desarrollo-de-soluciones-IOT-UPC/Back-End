@@ -12,6 +12,7 @@ import com.emsafe.user.entity.AppUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +37,7 @@ public class TelemetryService {
 
     private final RadiationReadingRepository readingRepository;
     private final DeviceRepository deviceRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public ReadingDto ingest(ReadingIngestRequest req) {
@@ -75,7 +77,16 @@ public class TelemetryService {
                 .device(device)
                 .build();
 
-        return toDto(readingRepository.save(reading));
+        ReadingDto dto = toDto(readingRepository.save(reading));
+
+        // Real-time push (STOMP / SimpleBroker). Same payload for web + mobile.
+        messagingTemplate.convertAndSend("/topic/readings", dto);
+        // Unassigned sensors also feed the technician's installation discovery panel.
+        if ("unregistered".equals(device.getStatus())) {
+            messagingTemplate.convertAndSend("/topic/discovery", dto);
+        }
+
+        return dto;
     }
 
     @Transactional(readOnly = true)

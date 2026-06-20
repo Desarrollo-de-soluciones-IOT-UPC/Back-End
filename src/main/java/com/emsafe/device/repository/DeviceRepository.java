@@ -25,4 +25,8 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
     List<Device> findByClient_IdAndStatusOrderByIdAsc(Long clientId, String status);
 
     long countByStatus(String status);
+
+    // ─── Discovery (installation claim) ──────────────────────────────────────
+    /** Devices not yet assigned to a client (auto-created by the edge ingest). */
+    List<Device> findByStatusOrderByIdAsc(String status);
 }

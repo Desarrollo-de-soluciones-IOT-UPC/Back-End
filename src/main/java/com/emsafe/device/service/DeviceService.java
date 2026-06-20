@@ -1,13 +1,17 @@
 package com.emsafe.device.service;
 
+import com.emsafe.dashboard.entity.RadiationReading;
+import com.emsafe.dashboard.repository.RadiationReadingRepository;
 import com.emsafe.device.dto.CreateDeviceRequest;
 import com.emsafe.device.dto.DeviceDto;
+import com.emsafe.device.dto.DiscoverableDeviceDto;
 import com.emsafe.device.entity.Device;
 import com.emsafe.device.repository.DeviceRepository;
 import com.emsafe.shared.exception.ResourceNotFoundException;
 import com.emsafe.user.entity.AppUser;
 import com.emsafe.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -21,9 +25,35 @@ public class DeviceService {
 
     private final DeviceRepository deviceRepository;
     private final UserRepository userRepository;
+    private final RadiationReadingRepository readingRepository;
 
     public List<DeviceDto> getAll() {
         return deviceRepository.findAllWithClient().stream().map(DeviceDto::from).toList();
+    }
+
+    /**
+     * Sensors discovered by the edge but not yet assigned to a client
+     * (status = "unregistered"), each enriched with its latest live reading so
+     * the technician can identify it (wiggle test) during an installation.
+     * (Freshness-window filter to be added later.)
+     */
+    @Transactional(readOnly = true)
+    public List<DiscoverableDeviceDto> getDiscoverable() {
+        return deviceRepository.findByStatusOrderByIdAsc("unregistered").stream().map(d -> {
+            RadiationReading last = readingRepository
+                    .findBySensorId(d.getSerialNumber(), PageRequest.of(0, 1))
+                    .stream().findFirst().orElse(null);
+            return new DiscoverableDeviceDto(
+                    d.getId(),
+                    d.getSerialNumber(),
+                    d.getName(),
+                    d.getType(),
+                    last != null ? last.getValue() : null,
+                    last != null ? last.getLevel() : null,
+                    last != null ? last.getRecordedAt() : null,
+                    d.getSerialNumber() != null ? readingRepository.countBySensorId(d.getSerialNumber()) : 0
+            );
+        }).toList();
     }
 
     public List<DeviceDto> getByClient(Long clientId) {

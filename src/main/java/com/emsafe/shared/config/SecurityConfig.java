@@ -51,6 +51,8 @@ public class SecurityConfig {
                         // Público por ahora: el edge no tiene JWT. Endurecer luego
                         // (API key en el POST, JWT en el GET) si se requiere.
                         .requestMatchers("/api/v1/**").permitAll()
+                        // WebSocket handshake (STOMP) — real-time telemetry push (no JWT, like /api/v1).
+                        .requestMatchers("/ws/**").permitAll()
                         // Tech endpoints — accessible by TECHNICIAN and ADMIN
                         .requestMatchers("/api/tech/**").hasAnyRole("TECHNICIAN", "ADMIN")
                         // Client (mobile app) endpoints — accessible by CLIENT and ADMIN

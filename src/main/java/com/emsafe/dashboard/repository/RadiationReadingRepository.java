@@ -36,4 +36,7 @@ public interface RadiationReadingRepository extends JpaRepository<RadiationReadi
     @Query("SELECT r FROM RadiationReading r LEFT JOIN FETCH r.device d LEFT JOIN FETCH d.client"
             + " WHERE r.sensorId = :deviceId ORDER BY r.recordedAt DESC, r.id DESC")
     List<RadiationReading> findBySensorId(@Param("deviceId") String deviceId, Pageable pageable);
+
+    /** Cuántas lecturas ha reportado un sensor (para el panel de descubrimiento). */
+    long countBySensorId(String sensorId);
 }

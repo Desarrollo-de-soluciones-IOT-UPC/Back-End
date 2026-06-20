@@ -277,7 +277,41 @@ public class WorkOrderService {
             );
         }
 
-        // ── Installation: create devices for the client ──
+        // ── Installation (discovery): claim sensors already reported by the edge ──
+        // The technician picks discovered sensors and provides name + type; the
+        // backend assigns client + location (from the work order). If the sensor
+        // hasn't reported yet, find-or-create by serial as a safety net.
+        if (req.claimedDevices() != null) {
+            for (PatchWorkOrderRequest.ClaimDeviceDto c : req.claimedDevices()) {
+                Device device = null;
+                if (c.deviceId() != null) {
+                    device = deviceRepository.findById(c.deviceId()).orElse(null);
+                }
+                if (device == null && StringUtils.hasText(c.serialNumber())) {
+                    device = deviceRepository.findBySerialNumber(c.serialNumber().trim());
+                }
+                if (device == null) {
+                    if (!StringUtils.hasText(c.serialNumber())) {
+                        throw new BadRequestException("deviceId or serialNumber is required to claim a device");
+                    }
+                    device = Device.builder()
+                            .serialNumber(c.serialNumber().trim())
+                            .createdAt(LocalDateTime.now())
+                            .build();
+                }
+                if (StringUtils.hasText(c.name())) device.setName(c.name());
+                else if (!StringUtils.hasText(device.getName())) device.setName("Sensor");
+                if (StringUtils.hasText(c.type())) device.setType(c.type());
+                else if (!StringUtils.hasText(device.getType())) device.setType("Sensor");
+                device.setClient(wo.getClientUser());
+                device.setLocation(wo.getLocation());
+                device.setStatus("active");
+                device.setInstallDate(LocalDate.now());
+                deviceRepository.save(device);
+            }
+        }
+
+        // ── Installation (legacy): create devices from a typed serial ──
         if (req.newDevices() != null) {
             for (PatchWorkOrderRequest.NewDeviceDto d : req.newDevices()) {
                 if (!StringUtils.hasText(d.serialNumber())) {
@@ -297,11 +331,17 @@ public class WorkOrderService {
         }
 
         // ── Maintenance / Collection: update device status ──
+        // Collection returns a sensor to the pool: status "unregistered" also
+        // clears the client and install date so it can be re-discovered elsewhere.
         if (req.deviceUpdates() != null) {
             for (PatchWorkOrderRequest.DeviceStatusDto u : req.deviceUpdates()) {
                 if (u.deviceId() == null || !StringUtils.hasText(u.status())) continue;
                 deviceRepository.findById(u.deviceId()).ifPresent(device -> {
                     device.setStatus(u.status());
+                    if ("unregistered".equals(u.status())) {
+                        device.setClient(null);
+                        device.setInstallDate(null);
+                    }
                     deviceRepository.save(device);
                 });
             }
