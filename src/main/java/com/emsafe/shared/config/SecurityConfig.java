@@ -47,6 +47,10 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
                         ).permitAll()
+                        // IoT telemetry (edge ingestion + web/mobile consumption).
+                        // Público por ahora: el edge no tiene JWT. Endurecer luego
+                        // (API key en el POST, JWT en el GET) si se requiere.
+                        .requestMatchers("/api/v1/**").permitAll()
                         // Tech endpoints — accessible by TECHNICIAN and ADMIN
                         .requestMatchers("/api/tech/**").hasAnyRole("TECHNICIAN", "ADMIN")
                         // Client (mobile app) endpoints — accessible by CLIENT and ADMIN
