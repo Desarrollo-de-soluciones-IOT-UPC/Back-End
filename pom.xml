@@ -31,6 +31,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- WebSocket (STOMP + in-memory SimpleBroker) — real-time telemetry push -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
         <!-- JPA + MySQL -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

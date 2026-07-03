@@ -15,8 +15,11 @@ public record PatchWorkOrderRequest(
         List<SensorPatchDto> sensors,
         ActivityLogPatchDto activityLogEntry,
 
-        // ── Installation: devices to create for the client ──
+        // ── Installation (legacy): devices to create from a typed serial ──
         List<NewDeviceDto> newDevices,
+
+        // ── Installation (discovery): claim sensors already reported by the edge ──
+        List<ClaimDeviceDto> claimedDevices,
 
         // ── Maintenance / Collection: device status changes ──
         List<DeviceStatusDto> deviceUpdates,
@@ -42,6 +45,19 @@ public record PatchWorkOrderRequest(
             String name,
             String type,
             String serialNumber
+    ) {}
+
+    /**
+     * Claim a discovered sensor during an installation. The technician only
+     * provides name + type (and the identity: deviceId from the discovery list,
+     * or serialNumber). Client and location are set by the backend from the
+     * work order — never typed by the technician.
+     */
+    public record ClaimDeviceDto(
+            Long deviceId,
+            String serialNumber,
+            String name,
+            String type
     ) {}
 
     public record DeviceStatusDto(
