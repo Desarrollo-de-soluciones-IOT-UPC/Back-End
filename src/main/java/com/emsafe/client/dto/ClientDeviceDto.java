@@ -14,5 +14,7 @@ public record ClientDeviceDto(
         Double latestValue,
         String latestLevel,
         String latestReadingDate,
-        int readingsCount
+        int readingsCount,
+        String plug,          // relay state reported by the device (ON | OFF | null)
+        String desiredPlug    // relay state ordered by the user (ON | OFF | null)
 ) {}

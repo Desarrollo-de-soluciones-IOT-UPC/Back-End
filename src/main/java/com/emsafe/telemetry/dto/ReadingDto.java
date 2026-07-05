@@ -33,6 +33,9 @@ public class ReadingDto {
 
     private String message;
 
+    /** Estado del relé reportado por el dispositivo en esta lectura (ON | OFF). */
+    private String plug;
+
     private String location;
 
     private Double latitude;

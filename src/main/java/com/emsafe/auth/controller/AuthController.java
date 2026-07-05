@@ -3,6 +3,7 @@ package com.emsafe.auth.controller;
 import com.emsafe.auth.dto.LoginRequest;
 import com.emsafe.auth.dto.LoginResponse;
 import com.emsafe.auth.dto.RefreshResponse;
+import com.emsafe.auth.dto.RegisterRequest;
 import com.emsafe.auth.service.AuthService;
 import com.emsafe.shared.dto.ApiResponse;
 import jakarta.validation.Valid;
@@ -29,5 +30,13 @@ public class AuthController {
     public ResponseEntity<ApiResponse<RefreshResponse>> refresh(
             @RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok(ApiResponse.ok(authService.refresh(authHeader)));
+    }
+
+    /** Public sign-up (mobile app) — account stays pending until an admin activates it. */
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody RegisterRequest req) {
+        authService.register(req);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Account created. An administrator will review and activate it shortly.", null));
     }
 }

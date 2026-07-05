@@ -7,8 +7,8 @@ import lombok.Setter;
 /**
  * Payload que envía el edge app en cada medición:
  * <pre>
- * { "serialNumber": "...", "field_uT": 123.4, "level": "MODERADO",
- *   "message": "Precaución: exposición moderada" }
+ * { "serialNumber": "...", "field_uT": 123.4, "level": "CAUTION",
+ *   "message": "Precaución: exposición moderada", "plug": "ON" }
  * </pre>
  */
 @Getter
@@ -22,9 +22,12 @@ public class ReadingIngestRequest {
     @JsonProperty("field_uT")
     private Double fieldUT;
 
-    /** Nivel reportado (e.g. SEGURO | MODERADO | ALTO). */
+    /** Nivel calculado por el edge (SAFE | CAUTION | DANGER) — smart edge, nadie lo recalcula. */
     private String level;
 
     /** Mensaje descriptivo de la lectura. */
     private String message;
+
+    /** Estado del relé reportado por el dispositivo (ON | OFF). */
+    private String plug;
 }

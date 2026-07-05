@@ -20,6 +20,7 @@ public record ClientRadiationDto(
             String deviceLocation,
             String deviceStatus,
             Double latestValue,
+            String level,           // edge-computed: "safe" | "caution" | "danger"
             String readingDate
     ) {}
 }

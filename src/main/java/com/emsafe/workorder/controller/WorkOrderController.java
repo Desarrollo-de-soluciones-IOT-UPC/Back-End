@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -89,14 +90,18 @@ public class WorkOrderController {
 
     @GetMapping("/api/tech/work-orders/{id}")
     public ResponseEntity<ApiResponse<WorkOrderDetailDto>> getTechOrderDetail(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            HttpServletRequest request) {
+        assertOrderAccess(request, id);
         return ResponseEntity.ok(ApiResponse.ok(workOrderService.findDetailById(id)));
     }
 
     @PatchMapping("/api/tech/work-orders/{id}")
     public ResponseEntity<ApiResponse<WorkOrderDetailDto>> patchTechOrder(
             @PathVariable Long id,
-            @RequestBody PatchWorkOrderRequest req) {
+            @RequestBody PatchWorkOrderRequest req,
+            HttpServletRequest request) {
+        assertOrderAccess(request, id);
         return ResponseEntity.ok(ApiResponse.ok(workOrderService.patch(id, req)));
     }
 
@@ -108,5 +113,20 @@ public class WorkOrderController {
             return jwtUtil.extractUserId(header.substring(7));
         }
         return null;
+    }
+
+    /**
+     * Technicians may only read/modify orders assigned to them; admins can
+     * access any order. Without this check any technician could complete or
+     * cancel another technician's orders through /api/tech/work-orders/{id}.
+     */
+    private void assertOrderAccess(HttpServletRequest request, Long orderId) {
+        String header = request.getHeader("Authorization");
+        if (!StringUtils.hasText(header) || !header.startsWith("Bearer ")) {
+            throw new AccessDeniedException("Access denied");
+        }
+        String token = header.substring(7);
+        if ("admin".equalsIgnoreCase(jwtUtil.extractRole(token))) return;
+        workOrderService.assertOwnedByTechnician(orderId, jwtUtil.extractUserId(token));
     }
 }

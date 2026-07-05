@@ -402,8 +402,21 @@ public class DataInitializer implements CommandLineRunner {
                 .location("Sala de Esterilización — Piso 2")
                 .sensorId("#GP-006").device(gpMn2).build()
         );
+
+        // Rescale legacy seed values (0.06–0.45) to microtesla with the linear map
+        // µT = 500·v + 50 (range ~80–275 µT, preserves each reading's level), and
+        // fill level/recordedAt the way the edge would have (smart-edge contract).
+        LocalDateTime seedBase = LocalDate.of(2026, 5, 20).atTime(9, 0);
+        int minuteOffset = 0;
+        for (RadiationReading r : readings) {
+            double uT = Math.round((r.getValue() * 500 + 50) * 10.0) / 10.0;
+            r.setValue(uT);
+            r.setLevel(RadiationLevel.byValue(uT).toUpperCase());
+            r.setRecordedAt(seedBase.plusMinutes(minuteOffset));
+            minuteOffset += 7;
+        }
         radiationReadingRepository.saveAll(readings);
-        log.info("Seeded {} radiation readings", readings.size());
+        log.info("Seeded {} radiation readings (µT scale)", readings.size());
     }
 
     // ─── Work Orders ──────────────────────────────────────────────────────────
@@ -690,7 +703,7 @@ public class DataInitializer implements CommandLineRunner {
         List<Alert> alerts = List.of(
                 Alert.builder().type("danger").icon("ph-warning-circle")
                         .title("Pico de radiación anómalo — Miraflores")
-                        .description("Sensor #LM-012 en Av. Larco detectó niveles de 0.38 μSv/h.")
+                        .description("Sensor #LM-012 en Av. Larco detectó niveles de 240 µT.")
                         .relativeTime("8 min ago")
                         .createdAt(LocalDateTime.now().minusMinutes(8)).build(),
 
@@ -702,7 +715,7 @@ public class DataInitializer implements CommandLineRunner {
 
                 Alert.builder().type("warning").icon("ph-warning")
                         .title("Nivel en umbral — San Isidro")
-                        .description("Sensor #LM-019 registra 0.28 μSv/h, cerca del límite de precaución.")
+                        .description("Sensor #LM-019 registra 190 µT, cerca del límite de precaución.")
                         .relativeTime("1 hour ago")
                         .createdAt(LocalDateTime.now().minusHours(1)).build(),
 
@@ -732,7 +745,7 @@ public class DataInitializer implements CommandLineRunner {
 
                 Alert.builder().type("danger").icon("ph-warning-circle")
                         .title("Nivel crítico — Villa El Salvador")
-                        .description("Sensor #LM-023 cerca de planta industrial registró 0.45 μSv/h.")
+                        .description("Sensor #LM-023 cerca de planta industrial registró 275 µT.")
                         .relativeTime("8 hours ago")
                         .createdAt(LocalDateTime.now().minusHours(8)).build(),
 

@@ -9,6 +9,7 @@ import com.emsafe.dashboard.dto.StatsDto;
 import com.emsafe.dashboard.entity.RadiationReading;
 import com.emsafe.dashboard.repository.AlertRepository;
 import com.emsafe.dashboard.repository.RadiationReadingRepository;
+import com.emsafe.shared.RadiationLevel;
 import com.emsafe.user.entity.Role;
 import com.emsafe.user.repository.UserRepository;
 import com.emsafe.workorder.entity.WorkOrderStatus;
@@ -30,7 +31,8 @@ public class DashboardService {
     private final AlertRepository alertRepository;
     private final RadiationReadingRepository radiationReadingRepository;
 
-    private static final double SAFETY_THRESHOLD = 0.5;
+    /** µT — safe limit shown in the admin dashboard (ICNIRP 50 Hz reference). */
+    private static final double SAFETY_THRESHOLD = RadiationLevel.DANGER_UT;
 
     public StatsDto getStats() {
         long pending = workOrderRepository.countByStatus(WorkOrderStatus.PENDING);
@@ -84,7 +86,7 @@ public class DashboardService {
         return new ChartDataDto(
                 new ChartDataDto.SystemActivity(activitySeries, activityCats),
                 new ChartDataDto.RadiationTrends(radSeries.isEmpty()
-                        ? List.of(0.05, 0.07, 0.06, 0.09, 0.08, 0.11, 0.13, 0.12)
+                        ? List.of(75.0, 85.0, 80.0, 95.0, 90.0, 105.0, 115.0, 110.0)
                         : radSeries),
                 new ChartDataDto.Regional(
                         List.of(tx, ca, wa, ny),
@@ -102,6 +104,7 @@ public class DashboardService {
                         r.getLocation(),
                         r.getSensorId(),
                         r.getValue(),
+                        RadiationLevel.of(r),
                         r.getReadingDate() != null ? r.getReadingDate().toString() : null
                 ))
                 .toList();
@@ -128,11 +131,14 @@ public class DashboardService {
             // Get the client entity (same for all readings in this group)
             var clientUser = clientReadings.get(0).getDevice().getClient();
 
-            // Max reading determines the marker color
+            // Max reading is shown as the peak; the marker color comes from the
+            // worst edge-computed level among this client's readings (smart edge).
             double maxVal = clientReadings.stream()
                     .mapToDouble(RadiationReading::getValue)
                     .max().orElse(0.0);
-            String level = maxVal < 0.10 ? "safe" : maxVal < 0.30 ? "caution" : "danger";
+            String level = clientReadings.stream()
+                    .map(RadiationLevel::of)
+                    .reduce("safe", RadiationLevel::worse);
 
             // Marker uses the CLIENT'S registered lat/lng (their physical site)
             Double lat = clientUser.getLatitude();
@@ -158,6 +164,7 @@ public class DashboardService {
                                 best.getDevice().getLocation(), // zone/room within the facility
                                 best.getDevice().getStatus(),
                                 best.getValue(),
+                                RadiationLevel.of(best),
                                 best.getReadingDate() != null ? best.getReadingDate().toString() : null
                         );
                     })

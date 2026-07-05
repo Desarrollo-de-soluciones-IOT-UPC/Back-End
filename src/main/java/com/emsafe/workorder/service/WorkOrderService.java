@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -218,6 +219,20 @@ public class WorkOrderService {
         WorkOrder wo = workOrderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("WorkOrder", id));
         return WorkOrderDetailDto.from(wo, resolveClientDevices(wo));
+    }
+
+    /**
+     * Ownership check for the tech portal: the order must be assigned to the
+     * technician extracted from the JWT (admins bypass this in the controller).
+     */
+    public void assertOwnedByTechnician(Long orderId, Long technicianId) {
+        WorkOrder wo = workOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("WorkOrder", orderId));
+        if (technicianId == null
+                || wo.getTechnician() == null
+                || !technicianId.equals(wo.getTechnician().getId())) {
+            throw new AccessDeniedException("This work order is not assigned to you");
+        }
     }
 
     @Transactional

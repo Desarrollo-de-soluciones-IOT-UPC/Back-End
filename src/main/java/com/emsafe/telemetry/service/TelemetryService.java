@@ -70,6 +70,7 @@ public class TelemetryService {
                 .value(req.getFieldUT())
                 .level(req.getLevel())
                 .message(req.getMessage())
+                .plug(req.getPlug())
                 .sensorId(serial)
                 .location(device.getLocation())
                 .latitude(client != null ? client.getLatitude() : null)
@@ -110,6 +111,23 @@ public class TelemetryService {
                         "No readings found for serialNumber: " + serialNumber));
     }
 
+    /**
+     * Estado DESEADO del relé para un sensor — lo consulta el EDGE en cada ciclo
+     * para saber si el usuario ordenó abrir/cerrar la corriente (camino de vuelta
+     * mobile → backend → edge → dispositivo). Devuelve null si no hay orden.
+     */
+    @Transactional(readOnly = true)
+    public String getDesiredPlug(String serialNumber) {
+        if (serialNumber == null || serialNumber.isBlank()) {
+            throw new BadRequestException("serialNumber is required");
+        }
+        Device device = deviceRepository.findBySerialNumber(serialNumber.trim());
+        if (device == null) {
+            throw new ResourceNotFoundException("Device", 0L);
+        }
+        return device.getDesiredPlug();
+    }
+
     private int clampLimit(int limit) {
         if (limit <= 0) return 50;
         return Math.min(limit, MAX_LIMIT);
@@ -126,6 +144,7 @@ public class TelemetryService {
                 .fieldUT(r.getValue())
                 .level(r.getLevel())
                 .message(r.getMessage())
+                .plug(r.getPlug())
                 .location(r.getLocation())
                 .latitude(r.getLatitude())
                 .longitude(r.getLongitude())

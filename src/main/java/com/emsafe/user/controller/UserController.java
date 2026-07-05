@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,7 +46,9 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UserDto>> update(
             @PathVariable Long id,
-            @RequestBody UpdateUserRequest req) {
+            @RequestBody UpdateUserRequest req,
+            Authentication auth) {
+        assertSelfOrAdmin(auth, id);
         return ResponseEntity.ok(ApiResponse.ok(userService.update(id, req)));
     }
 
@@ -58,7 +61,9 @@ public class UserController {
     @PatchMapping("/{id}/password")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @PathVariable Long id,
-            @Valid @RequestBody ChangePasswordRequest req) {
+            @Valid @RequestBody ChangePasswordRequest req,
+            Authentication auth) {
+        assertSelfOrAdmin(auth, id);
         userService.changePassword(id, req);
         return ResponseEntity.ok(ApiResponse.ok("Password updated", null));
     }
@@ -68,5 +73,22 @@ public class UserController {
         AppUser user = userRepository.findByEmail(auth.getName())
                 .orElseThrow(() -> new com.emsafe.shared.exception.ResourceNotFoundException("User", 0L));
         return ResponseEntity.ok(ApiResponse.ok(UserDto.from(user)));
+    }
+
+    /**
+     * Non-admin callers (technicians) may only modify their own account.
+     * PUT /api/users/{id} and PATCH /api/users/{id}/password are open to
+     * TECHNICIAN in SecurityConfig for the "own profile" flow — without this
+     * check a technician could edit any user, including the admin's password.
+     */
+    private void assertSelfOrAdmin(Authentication auth, Long targetId) {
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        if (isAdmin) return;
+        AppUser current = userRepository.findByEmail(auth.getName())
+                .orElseThrow(() -> new AccessDeniedException("Access denied"));
+        if (!current.getId().equals(targetId)) {
+            throw new AccessDeniedException("You can only modify your own account");
+        }
     }
 }

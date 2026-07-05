@@ -7,5 +7,6 @@ public record RadiationPointDto(
         String location,
         String sensorId,
         Double value,
+        String level,           // edge-computed: "safe" | "caution" | "danger"
         String readingDate
 ) {}

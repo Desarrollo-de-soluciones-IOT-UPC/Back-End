@@ -38,13 +38,17 @@ public class RadiationReading {
     @Column(length = 50)
     private String sensorId;
 
-    /** Nivel reportado por el edge (e.g. SEGURO | MODERADO | ALTO). */
+    /** Nivel reportado por el edge (SAFE | CAUTION | DANGER). */
     @Column(length = 30)
     private String level;
 
     /** Mensaje descriptivo que acompaña la lectura. */
     @Column(length = 255)
     private String message;
+
+    /** Estado del relé reportado por el dispositivo en esta lectura (ON | OFF). */
+    @Column(length = 8)
+    private String plug;
 
     /** Timestamp real de la medición (el edge ingesta varias por día). */
     @Column(name = "recorded_at")

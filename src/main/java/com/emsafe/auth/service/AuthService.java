@@ -3,8 +3,10 @@ package com.emsafe.auth.service;
 import com.emsafe.auth.dto.LoginRequest;
 import com.emsafe.auth.dto.LoginResponse;
 import com.emsafe.auth.dto.RefreshResponse;
+import com.emsafe.auth.dto.RegisterRequest;
 import com.emsafe.auth.security.JwtUtil;
 import com.emsafe.auth.security.LoginAttemptService;
+import com.emsafe.shared.exception.BadRequestException;
 import com.emsafe.user.entity.AppUser;
 import com.emsafe.user.entity.Role;
 import com.emsafe.user.repository.UserRepository;
@@ -14,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -52,6 +55,12 @@ public class AuthService {
                 throw new BadCredentialsException("Invalid email or password");
             }
 
+            // Self-registered accounts stay "pending" until an admin activates them.
+            if ("pending".equalsIgnoreCase(user.getStatus())) {
+                throw new BadRequestException(
+                        "Your account is pending approval by an administrator.");
+            }
+
             user.setLastLogin(LocalDateTime.now());
             userRepository.save(user);
 
@@ -74,5 +83,37 @@ public class AuthService {
             loginAttemptService.registerFailure(req.email());
             throw ex;
         }
+    }
+
+    /**
+     * Public sign-up from the mobile app: creates a CLIENT in "pending" state.
+     * The account cannot log in until an admin activates it from the web portal.
+     */
+    @Transactional
+    public void register(RegisterRequest req) {
+        if (userRepository.existsByEmail(req.email())) {
+            throw new BadRequestException("Email already in use: " + req.email());
+        }
+        userRepository.save(AppUser.builder()
+                .name(req.name().trim())
+                .initials(buildInitials(req.name()))
+                .email(req.email().trim())
+                .passwordHash(passwordEncoder.encode(req.password()))
+                .role(Role.CLIENT)
+                .phone(req.phone())
+                .address(req.address())
+                .joinDate(LocalDate.now())
+                .status("pending")
+                .build());
+    }
+
+    private String buildInitials(String name) {
+        String[] parts = name.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            if (!part.isEmpty()) sb.append(Character.toUpperCase(part.charAt(0)));
+            if (sb.length() == 2) break;
+        }
+        return sb.toString();
     }
 }

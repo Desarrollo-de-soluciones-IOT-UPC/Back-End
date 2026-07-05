@@ -40,7 +40,8 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh").permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/auth/login", "/api/auth/refresh", "/api/auth/register").permitAll()
                         // Swagger / OpenAPI UI
                         .requestMatchers(
                                 "/swagger-ui/**",

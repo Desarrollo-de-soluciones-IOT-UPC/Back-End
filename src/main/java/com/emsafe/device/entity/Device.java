@@ -43,6 +43,14 @@ public class Device {
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    /**
+     * Estado DESEADO del relé (ON | OFF), ordenado por el usuario desde la app.
+     * El edge lo consulta (GET /api/v1/devices/{serial}/plug) para accionar el
+     * dispositivo; el estado real reportado viaja en cada lectura (reading.plug).
+     */
+    @Column(name = "desired_plug", length = 8)
+    private String desiredPlug;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id")
     private AppUser client;

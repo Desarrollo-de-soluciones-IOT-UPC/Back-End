@@ -2,6 +2,7 @@ package com.emsafe.client.controller;
 
 import com.emsafe.auth.security.JwtUtil;
 import com.emsafe.client.dto.*;
+import com.emsafe.client.service.AssistantService;
 import com.emsafe.client.service.ClientService;
 import com.emsafe.shared.dto.ApiResponse;
 import com.emsafe.user.dto.ChangePasswordRequest;
@@ -25,6 +26,7 @@ import java.util.List;
 public class ClientController {
 
     private final ClientService clientService;
+    private final AssistantService assistantService;
     private final JwtUtil jwtUtil;
 
     // ─── Profile ────────────────────────────────────────────────────────────
@@ -50,6 +52,15 @@ public class ClientController {
         return ResponseEntity.ok(ApiResponse.ok("Password updated", null));
     }
 
+    /** Self-service deletion of the authenticated client's account (password-confirmed). */
+    @PostMapping("/account/delete")
+    public ResponseEntity<ApiResponse<Void>> deleteAccount(
+            HttpServletRequest request,
+            @RequestBody DeleteAccountRequest req) {
+        clientService.deleteAccount(extractUserId(request), req.password());
+        return ResponseEntity.ok(ApiResponse.ok("Account deleted", null));
+    }
+
     // ─── Devices ──────────────────────────────────────────────────────────────
 
     @GetMapping("/devices")
@@ -69,6 +80,16 @@ public class ClientController {
         return ResponseEntity.ok(ApiResponse.ok(clientService.getDeviceReadings(extractUserId(request), id)));
     }
 
+    /** El cliente ordena abrir/cerrar el relé de SU dispositivo (camino de vuelta al edge). */
+    @PatchMapping("/devices/{id}/plug")
+    public ResponseEntity<ApiResponse<ClientDeviceDto>> setPlug(
+            HttpServletRequest request,
+            @PathVariable Long id,
+            @RequestBody SetPlugRequest req) {
+        return ResponseEntity.ok(ApiResponse.ok("Plug state updated",
+                clientService.setDesiredPlug(extractUserId(request), id, req.plug())));
+    }
+
     // ─── Readings / Dashboard / Alerts ────────────────────────────────────────
 
     @GetMapping("/readings")
@@ -84,6 +105,24 @@ public class ClientController {
     @GetMapping("/alerts")
     public ResponseEntity<ApiResponse<List<ClientAlertDto>>> getAlerts(HttpServletRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(clientService.getAlerts(extractUserId(request))));
+    }
+
+    /** Aggregated radiation report — ?period=month (last 30 days) | year (last 12 months). */
+    @GetMapping("/reports")
+    public ResponseEntity<ApiResponse<ClientReportDto>> getReport(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "month") String period) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                clientService.getReport(extractUserId(request), period)));
+    }
+
+    /** "Astra" assistant (US10) — proxied to Gemini; the API key never leaves the backend. */
+    @PostMapping("/chat")
+    public ResponseEntity<ApiResponse<ChatReplyDto>> chat(
+            HttpServletRequest request,
+            @Valid @RequestBody ChatRequest req) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                assistantService.chat(extractUserId(request), req)));
     }
 
     // ─── Private ──────────────────────────────────────────────────────────────
