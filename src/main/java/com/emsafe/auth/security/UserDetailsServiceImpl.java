@@ -21,6 +21,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                         .username(u.getEmail())
                         .password(u.getPasswordHash())
                         .roles(u.getRole().name())
+                        // Only "active" accounts may operate. "pending"/"inactive"
+                        // are disabled so a still-valid JWT stops working once an
+                        // admin deactivates the account (null status = legacy active).
+                        .disabled(u.getStatus() != null
+                                && !"active".equalsIgnoreCase(u.getStatus()))
                         .build())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
     }

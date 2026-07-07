@@ -20,10 +20,10 @@ public interface RadiationReadingRepository extends JpaRepository<RadiationReadi
     Double findAverage();
 
     // ─── Client (mobile) queries ─────────────────────────────────────────────
-    @Query("SELECT r FROM RadiationReading r JOIN FETCH r.device d WHERE d.client.id = :clientId ORDER BY r.readingDate DESC")
+    @Query("SELECT r FROM RadiationReading r JOIN FETCH r.device d WHERE d.client.id = :clientId ORDER BY r.recordedAt DESC, r.id DESC")
     List<RadiationReading> findByClientIdWithDevice(@Param("clientId") Long clientId);
 
-    @Query("SELECT r FROM RadiationReading r JOIN FETCH r.device d WHERE d.id = :deviceId ORDER BY r.readingDate DESC")
+    @Query("SELECT r FROM RadiationReading r JOIN FETCH r.device d WHERE d.id = :deviceId ORDER BY r.recordedAt DESC, r.id DESC")
     List<RadiationReading> findByDeviceIdWithDevice(@Param("deviceId") Long deviceId);
 
     // ─── Telemetry (edge ingestion + web/mobile consumption) ──────────────────

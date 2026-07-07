@@ -14,5 +14,6 @@ public record ClientAlertDto(
         Double value,
         Long deviceId,
         String deviceName,
-        String time
+        String time,
+        String recordedAt   // precise ISO timestamp (for relative "36 min ago" display)
 ) {}

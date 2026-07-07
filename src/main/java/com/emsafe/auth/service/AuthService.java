@@ -12,6 +12,7 @@ import com.emsafe.user.entity.Role;
 import com.emsafe.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,18 +34,25 @@ public class AuthService {
         if (!jwtUtil.isTokenValid(token)) {
             throw new BadCredentialsException("Token is invalid or expired");
         }
+        // Re-read the account from the DB: a deleted or deactivated user (or one
+        // whose role changed) must not be able to renew a token indefinitely.
         String email = jwtUtil.extractEmail(token);
-        String role  = jwtUtil.extractRole(token);
-        Long userId  = jwtUtil.extractUserId(token);
-        String newToken = jwtUtil.generateToken(email, role, userId);
-        return new RefreshResponse(newToken, 86400000L);
+        AppUser user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadCredentialsException("Account no longer exists"));
+        if (!"active".equalsIgnoreCase(user.getStatus())) {
+            throw new BadCredentialsException("Account is not active");
+        }
+        String newToken = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getId());
+        return new RefreshResponse(newToken, jwtUtil.getExpirationMs());
     }
 
     @Transactional
     public LoginResponse login(LoginRequest req) {
         if (loginAttemptService.isBlocked(req.email())) {
             long secs = loginAttemptService.secondsUntilUnlock(req.email());
-            throw new BadCredentialsException("Account temporarily locked. Try again in " + secs + " seconds.");
+            // LockedException (not BadCredentialsException) so GlobalExceptionHandler
+            // surfaces the real lockout message instead of "Invalid email or password".
+            throw new LockedException("Account temporarily locked. Try again in " + secs + " seconds.");
         }
 
         try {
@@ -55,10 +63,17 @@ public class AuthService {
                 throw new BadCredentialsException("Invalid email or password");
             }
 
-            // Self-registered accounts stay "pending" until an admin activates them.
-            if ("pending".equalsIgnoreCase(user.getStatus())) {
+            // Only active accounts may sign in. Self-registered accounts start
+            // "pending"; an admin can also "inactivate" any account — both are
+            // blocked here so they can never reach the app (all three roles).
+            String status = user.getStatus();
+            if (status != null && !"active".equalsIgnoreCase(status)) {
+                if ("pending".equalsIgnoreCase(status)) {
+                    throw new BadRequestException(
+                            "Your account is pending approval by an administrator.");
+                }
                 throw new BadRequestException(
-                        "Your account is pending approval by an administrator.");
+                        "Your account has been deactivated. Please contact an administrator.");
             }
 
             user.setLastLogin(LocalDateTime.now());
@@ -102,6 +117,14 @@ public class AuthService {
                 .role(Role.CLIENT)
                 .phone(req.phone())
                 .address(req.address())
+                // Persist the client profile chosen at sign-up so the admin sees the
+                // right type (company/individual) and contact when editing.
+                .clientType(req.clientType())
+                .contactName(req.contactName())
+                .contactEmail(req.email().trim())
+                .contactPhone(req.phone())
+                .taxId(req.taxId())
+                .industry(req.industry())
                 .joinDate(LocalDate.now())
                 .status("pending")
                 .build());
