@@ -81,7 +81,14 @@ public class TelemetryService {
         ReadingDto dto = toDto(readingRepository.save(reading));
 
         // Real-time push (STOMP / SimpleBroker). Same payload for web + mobile.
+        // Global topic: consumed by admin/technician web (radiation map, dashboard),
+        // which need to see every sensor.
         messagingTemplate.convertAndSend("/topic/readings", dto);
+        // Per-client topic: a client (mobile app) only subscribes to its own readings,
+        // so it never receives — or gets DANGER alerts about — other clients' sensors.
+        if (client != null) {
+            messagingTemplate.convertAndSend("/topic/clients/" + client.getId() + "/readings", dto);
+        }
         // Unassigned sensors also feed the technician's installation discovery panel.
         if ("unregistered".equals(device.getStatus())) {
             messagingTemplate.convertAndSend("/topic/discovery", dto);

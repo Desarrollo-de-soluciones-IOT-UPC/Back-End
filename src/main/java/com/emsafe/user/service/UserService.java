@@ -81,6 +81,12 @@ public class UserService {
 
         if (StringUtils.hasText(req.name())) user.setName(req.name());
         if (StringUtils.hasText(req.initials())) user.setInitials(req.initials());
+        if (StringUtils.hasText(req.email()) && !req.email().equalsIgnoreCase(user.getEmail())) {
+            if (userRepository.existsByEmail(req.email())) {
+                throw new BadRequestException("Email already in use: " + req.email());
+            }
+            user.setEmail(req.email().trim());
+        }
         if (StringUtils.hasText(req.phone())) user.setPhone(req.phone());
         if (StringUtils.hasText(req.location())) user.setLocation(req.location());
         if (StringUtils.hasText(req.status())) user.setStatus(req.status());
@@ -90,6 +96,9 @@ public class UserService {
         if (req.notes() != null) user.setNotes(req.notes());
         // Client (company / individual) profile fields — allow clearing with non-null empty.
         if (req.address() != null) user.setAddress(req.address());
+        // Map-picker coordinates (the web/mobile radiation map depends on these).
+        if (req.latitude() != null) user.setLatitude(req.latitude());
+        if (req.longitude() != null) user.setLongitude(req.longitude());
         if (req.clientType() != null) user.setClientType(req.clientType());
         if (req.taxId() != null) user.setTaxId(req.taxId());
         if (req.industry() != null) user.setIndustry(req.industry());

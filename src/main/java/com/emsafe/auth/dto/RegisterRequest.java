@@ -21,5 +21,11 @@ public record RegisterRequest(
         String password,
 
         String phone,
-        String address
+        String address,
+
+        // Client profile captured during mobile sign-up (company | individual).
+        String clientType,
+        String contactName,
+        String taxId,
+        String industry
 ) {}

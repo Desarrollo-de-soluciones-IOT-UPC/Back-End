@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -157,8 +158,15 @@ public class ClientService {
                         .toList()))
                 .toList();
 
-        double avg = readings.isEmpty() ? 0.0
-                : round3(readings.stream().mapToDouble(RadiationReading::getValue).average().orElse(0.0));
+        // Average over the last 24h so it tracks current conditions and matches
+        // the live level pill (an all-time average would stay high forever after
+        // any single spike, which reads as "high average but green level").
+        LocalDateTime avgCutoff = LocalDateTime.now().minusHours(24);
+        List<RadiationReading> recent = readings.stream()
+                .filter(r -> readingTs(r).isAfter(avgCutoff))
+                .toList();
+        double avg = recent.isEmpty() ? 0.0
+                : round3(recent.stream().mapToDouble(RadiationReading::getValue).average().orElse(0.0));
         double max = readings.stream().mapToDouble(RadiationReading::getValue).max().orElse(0.0);
         int activeCount = (int) devices.stream()
                 .filter(d -> "active".equalsIgnoreCase(d.getStatus()))
@@ -167,7 +175,7 @@ public class ClientService {
                 .filter(r -> !"safe".equals(levelOf(r)))
                 .count();
 
-        // readings already come sorted DESC by date
+        // readings already come sorted DESC by recordedAt (most recent first)
         List<ClientReadingDto> latest = readings.stream()
                 .limit(10)
                 .map(this::toReadingDto)
@@ -258,6 +266,7 @@ public class ClientService {
     public List<ClientAlertDto> getAlerts(Long clientId) {
         return radiationReadingRepository.findByClientIdWithDevice(clientId).stream()
                 .filter(r -> !"safe".equals(levelOf(r)))
+                .sorted(Comparator.comparing(ClientService::readingTs).reversed())
                 .map(r -> {
                     String lvl = levelOf(r);
                     String deviceName = r.getDevice() != null ? r.getDevice().getName() : "Sensor";
@@ -270,7 +279,8 @@ public class ClientService {
                             r.getValue(),
                             r.getDevice() != null ? r.getDevice().getId() : null,
                             r.getDevice() != null ? r.getDevice().getName() : null,
-                            r.getReadingDate() != null ? r.getReadingDate().toString() : null
+                            r.getReadingDate() != null ? r.getReadingDate().toString() : null,
+                            r.getRecordedAt() != null ? r.getRecordedAt().toString() : null
                     );
                 })
                 .toList();
@@ -319,9 +329,16 @@ public class ClientService {
                 r.getValue(),
                 levelOf(r),
                 r.getReadingDate() != null ? r.getReadingDate().toString() : null,
+                r.getRecordedAt() != null ? r.getRecordedAt().toString() : null,
                 r.getDevice() != null ? r.getDevice().getId() : null,
                 r.getDevice() != null ? r.getDevice().getName() : null
         );
+    }
+
+    /** Best-effort timestamp for a reading: precise recordedAt, else start of its date. */
+    private static LocalDateTime readingTs(RadiationReading r) {
+        if (r.getRecordedAt() != null) return r.getRecordedAt();
+        return r.getReadingDate() != null ? r.getReadingDate().atStartOfDay() : LocalDateTime.MIN;
     }
 
     private double round3(double v) {

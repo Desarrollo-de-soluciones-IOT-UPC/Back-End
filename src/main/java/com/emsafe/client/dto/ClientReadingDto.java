@@ -8,6 +8,7 @@ public record ClientReadingDto(
         Double value,
         String level,
         String readingDate,
+        String recordedAt,   // precise ISO timestamp of the measurement (for time-of-day display)
         Long deviceId,
         String deviceName
 ) {}

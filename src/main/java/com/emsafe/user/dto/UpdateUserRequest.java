@@ -5,6 +5,7 @@ import java.time.LocalDate;
 public record UpdateUserRequest(
         String name,
         String initials,
+        String email,
         String phone,
         String location,
         String status,
@@ -14,6 +15,8 @@ public record UpdateUserRequest(
         String password,
         String notes,
         String address,
+        Double latitude,
+        Double longitude,
         String clientType,
         String taxId,
         String industry,

@@ -18,6 +18,7 @@ import com.emsafe.workorder.repository.WorkOrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -131,46 +132,46 @@ public class DashboardService {
             // Get the client entity (same for all readings in this group)
             var clientUser = clientReadings.get(0).getDevice().getClient();
 
-            // Max reading is shown as the peak; the marker color comes from the
-            // worst edge-computed level among this client's readings (smart edge).
-            double maxVal = clientReadings.stream()
-                    .mapToDouble(RadiationReading::getValue)
-                    .max().orElse(0.0);
-            String level = clientReadings.stream()
-                    .map(RadiationLevel::of)
-                    .reduce("safe", RadiationLevel::worse);
-
             // Marker uses the CLIENT'S registered lat/lng (their physical site)
             Double lat = clientUser.getLatitude();
             Double lng = clientUser.getLongitude();
             String address = clientUser.getAddress() != null ? clientUser.getAddress() : clientUser.getLocation();
 
-            // One entry per device: highest reading for that device
+            // One entry per device showing its LATEST reading (by recordedAt), so the
+            // map reflects the sensor's CURRENT measurement — not a historical peak.
             Map<Long, List<RadiationReading>> byDevice = clientReadings.stream()
                     .filter(r -> r.getDevice() != null)
                     .collect(Collectors.groupingBy(r -> r.getDevice().getId()));
 
-            List<ClientRadiationDto.DeviceReadingDto> deviceDtos = byDevice.entrySet().stream()
-                    .map(de -> {
-                        RadiationReading best = de.getValue().stream()
-                                .max(Comparator.comparingDouble(RadiationReading::getValue))
+            List<ClientRadiationDto.DeviceReadingDto> deviceDtos = byDevice.values().stream()
+                    .map(list -> {
+                        RadiationReading latest = list.stream()
+                                .max(Comparator.comparing((RadiationReading r) -> readingTs(r)))
                                 .orElse(null);
-                        if (best == null) return null;
+                        if (latest == null) return null;
                         return new ClientRadiationDto.DeviceReadingDto(
-                                best.getDevice().getId(),
-                                best.getDevice().getName(),
-                                best.getDevice().getType(),
-                                best.getDevice().getSerialNumber(),
-                                best.getDevice().getLocation(), // zone/room within the facility
-                                best.getDevice().getStatus(),
-                                best.getValue(),
-                                RadiationLevel.of(best),
-                                best.getReadingDate() != null ? best.getReadingDate().toString() : null
+                                latest.getDevice().getId(),
+                                latest.getDevice().getName(),
+                                latest.getDevice().getType(),
+                                latest.getDevice().getSerialNumber(),
+                                latest.getDevice().getLocation(), // zone/room within the facility
+                                latest.getDevice().getStatus(),
+                                latest.getValue(),
+                                RadiationLevel.of(latest),
+                                latest.getReadingDate() != null ? latest.getReadingDate().toString() : null
                         );
                     })
                     .filter(Objects::nonNull)
                     .sorted(Comparator.comparingDouble(ClientRadiationDto.DeviceReadingDto::latestValue).reversed())
                     .toList();
+
+            // Client headline value/level = the worst CURRENT sensor (highest latest reading).
+            double maxVal = deviceDtos.stream()
+                    .mapToDouble(ClientRadiationDto.DeviceReadingDto::latestValue)
+                    .max().orElse(0.0);
+            String level = deviceDtos.stream()
+                    .map(ClientRadiationDto.DeviceReadingDto::level)
+                    .reduce("safe", RadiationLevel::worse);
 
             result.add(new ClientRadiationDto(
                     clientId,
@@ -190,5 +191,11 @@ public class DashboardService {
 
     private long countByState(String state) {
         return workOrderRepository.countByCitySuffix(", " + state);
+    }
+
+    /** Best-effort timestamp for a reading: precise recordedAt, else start of its date. */
+    private static LocalDateTime readingTs(RadiationReading r) {
+        if (r.getRecordedAt() != null) return r.getRecordedAt();
+        return r.getReadingDate() != null ? r.getReadingDate().atStartOfDay() : LocalDateTime.MIN;
     }
 }

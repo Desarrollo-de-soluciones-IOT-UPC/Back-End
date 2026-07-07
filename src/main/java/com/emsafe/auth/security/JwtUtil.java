@@ -36,6 +36,10 @@ public class JwtUtil {
                 .compact();
     }
 
+    public long getExpirationMs() {
+        return expirationMs;
+    }
+
     public String extractEmail(String token) {
         return parseClaims(token).getSubject();
     }
