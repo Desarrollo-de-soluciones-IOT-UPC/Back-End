@@ -7,6 +7,7 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -16,6 +17,10 @@ import java.util.List;
 public class OpenApiConfig {
 
     private static final String BEARER_SCHEME = "bearerAuth";
+
+    /** URL pública del despliegue (APP_PUBLIC_URL). Evita hardcodear el host. */
+    @Value("${app.public-url:http://localhost:8080}")
+    private String publicUrl;
 
     @Bean
     public OpenAPI openAPI() {
@@ -35,7 +40,7 @@ public class OpenApiConfig {
                                 .email("admin@emsafe.com")))
                 .servers(List.of(
                         new Server().url("http://localhost:8080").description("Local"),
-                        new Server().url("https://emsafe-backend.azurewebsites.net").description("Producción")
+                        new Server().url(publicUrl).description("Producción")
                 ))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_SCHEME))
                 .components(new Components()

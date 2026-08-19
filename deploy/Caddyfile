@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------------------
+# Caddy: termina TLS (certificado Let's Encrypt automático y auto-renovado),
+# sirve la SPA de Angular y hace de reverse proxy hacia Spring Boot.
+#
+# Para que la emisión del certificado funcione, los puertos 80 y 443 deben
+# estar abiertos TANTO en la Security List de Oracle COMO en el iptables de
+# la VM, y el dominio debe resolver ya a la IP pública.
+# ---------------------------------------------------------------------------
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# --- API REST -----------------------------------------------------------
+	@api path /api /api/*
+	handle @api {
+		reverse_proxy backend:8080
+	}
+
+	# --- WebSocket (STOMP) --------------------------------------------------
+	# Caddy detecta y reenvía el Upgrade automáticamente, no hace falta nada más.
+	@ws path /ws /ws/*
+	handle @ws {
+		reverse_proxy backend:8080
+	}
+
+	# --- Swagger / OpenAPI --------------------------------------------------
+	@docs path /swagger-ui /swagger-ui/* /v3/api-docs /v3/api-docs/*
+	handle @docs {
+		reverse_proxy backend:8080
+	}
+
+	# --- SPA Angular --------------------------------------------------------
+	# try_files es lo que hace funcionar las rutas profundas: si el navegador
+	# pide /admin/users y ese archivo no existe en disco, se devuelve
+	# index.html y el router de Angular resuelve la ruta en el cliente.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

@@ -1,0 +1,141 @@
+# ---------------------------------------------------------------------------
+# Cazador de capacidad ARM en Oracle Cloud.
+#
+# El tier Always Free de OCI suele responder "Out of host capacity" al crear
+# instancias Ampere A1. Este workflow reintenta cada 15 minutos desde los
+# runners de GitHub, sin depender de que haya una laptop encendida.
+#
+# TEMPORAL: bórralo (o deshabilítalo) en cuanto la instancia exista.
+#
+# Secrets necesarios en Settings -> Secrets and variables -> Actions:
+#   OCI_USER_OCID      ocid1.user.oc1..xxxx
+#   OCI_TENANCY_OCID   ocid1.tenancy.oc1..xxxx
+#   OCI_FINGERPRINT    aa:bb:cc:...
+#   OCI_REGION         sa-santiago-1
+#   OCI_PRIVATE_KEY    contenido completo del .pem (con BEGIN/END)
+#   OCI_SUBNET_OCID    ocid1.subnet.oc1.sa-santiago-1.xxxx  (subred pública)
+#   OCI_IMAGE_OCID     ocid1.image.oc1.sa-santiago-1.xxxx   (Ubuntu 24.04 aarch64)
+#   OCI_SSH_PUBLIC_KEY contenido de id_ed25519.pub
+# ---------------------------------------------------------------------------
+
+name: OCI — cazar capacidad ARM
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: oci-launch
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Instalar OCI CLI
+        run: pip install --quiet oci-cli
+
+      - name: Configurar credenciales
+        env:
+          OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.oci
+          printf '%s\n' "$OCI_PRIVATE_KEY" > ~/.oci/key.pem
+          cat > ~/.oci/config <<CFG
+          [DEFAULT]
+          user=${{ secrets.OCI_USER_OCID }}
+          fingerprint=${{ secrets.OCI_FINGERPRINT }}
+          tenancy=${{ secrets.OCI_TENANCY_OCID }}
+          region=${{ secrets.OCI_REGION }}
+          key_file=$HOME/.oci/key.pem
+          CFG
+          chmod 600 ~/.oci/key.pem ~/.oci/config
+
+      - name: Intentar crear la instancia
+        id: intento
+        env:
+          TENANCY:  ${{ secrets.OCI_TENANCY_OCID }}
+          SUBNET:   ${{ secrets.OCI_SUBNET_OCID }}
+          IMAGE:    ${{ secrets.OCI_IMAGE_OCID }}
+          SSH_KEY:  ${{ secrets.OCI_SSH_PUBLIC_KEY }}
+        run: |
+          set +e
+          AD=$(oci iam availability-domain list --query 'data[0].name' --raw-output)
+
+          # Si ya existe una instancia viva, no hay nada que hacer.
+          VIVAS=$(oci compute instance list -c "$TENANCY" --display-name emsafe-prod \
+                  --query "length(data[?\"lifecycle-state\"!='TERMINATED'])" --raw-output 2>/dev/null)
+          if [ "${VIVAS:-0}" -gt 0 ] 2>/dev/null; then
+            echo "La instancia ya existe. Nada que hacer."
+            echo "creada=ya" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          mapfile -t FDS < <(oci iam fault-domain list --availability-domain "$AD" \
+                             --compartment-id "$TENANCY" | jq -r '.data[].name')
+          [ ${#FDS[@]} -eq 0 ] && FDS=("FAULT-DOMAIN-1")
+
+          # Un tamaño por ejecución, alternando según la hora: así son 3 intentos
+          # por corrida (uno por fault domain) = 12/hora, muy por debajo del
+          # límite de peticiones que nos cortó al intentar cada 20 segundos.
+          if [ $(( $(date +%H) % 2 )) -eq 0 ]; then
+            CFG='{"ocpus":2,"memoryInGBs":12}'
+          else
+            CFG='{"ocpus":1,"memoryInGBs":6}'
+          fi
+          echo "AD=$AD | shape-config=$CFG | FDs=${FDS[*]}"
+
+          for FD in "${FDS[@]}"; do
+            echo "--- probando $FD"
+            OUT=$(oci compute instance launch \
+              --availability-domain "$AD" --compartment-id "$TENANCY" \
+              --fault-domain "$FD" \
+              --shape VM.Standard.A1.Flex --shape-config "$CFG" \
+              --image-id "$IMAGE" --subnet-id "$SUBNET" \
+              --assign-public-ip true --display-name emsafe-prod \
+              --metadata "{\"ssh_authorized_keys\":\"$SSH_KEY\"}" 2>&1)
+
+            if [ $? -eq 0 ]; then
+              echo "creada=si" >> $GITHUB_OUTPUT
+              echo "## 🎉 Instancia creada en $FD" >> $GITHUB_STEP_SUMMARY
+              echo "Esperando la IP pública..." >> $GITHUB_STEP_SUMMARY
+              sleep 45
+              INST=$(oci compute instance list -c "$TENANCY" --display-name emsafe-prod \
+                     --query 'data[0].id' --raw-output)
+              IP=$(oci compute instance list-vnics --instance-id "$INST" \
+                   --query 'data[0]."public-ip"' --raw-output)
+              echo "IP pública: **$IP**" >> $GITHUB_STEP_SUMMARY
+              echo "ip=$IP" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            if echo "$OUT" | grep -qi "capacity"; then
+              echo "    sin capacidad"
+            elif echo "$OUT" | grep -qiE "TooManyRequests|429"; then
+              echo "    rate limit, se corta esta corrida"
+              break
+            else
+              echo "    ERROR:"; echo "$OUT"
+              exit 1
+            fi
+            sleep 30
+          done
+
+          echo "creada=no" >> $GITHUB_OUTPUT
+          echo "Sin capacidad en esta corrida." >> $GITHUB_STEP_SUMMARY
+          exit 0
+
+      # GitHub solo envía correo cuando un workflow FALLA. Fallamos a propósito
+      # al conseguir la instancia: es la única notificación gratuita que hay.
+      - name: Avisar por correo (falla intencional)
+        if: steps.intento.outputs.creada == 'si'
+        run: |
+          echo "INSTANCIA CREADA — IP: ${{ steps.intento.outputs.ip }}"
+          echo "Este fallo es a propósito, para que GitHub te mande el correo."
+          exit 1

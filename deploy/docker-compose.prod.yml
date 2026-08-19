@@ -1,0 +1,94 @@
+# ---------------------------------------------------------------------------
+# EMSafe — stack de producción (Oracle Cloud Always Free, ARM64)
+#
+#   internet ──▶ caddy :443  ──┬── /            SPA Angular (archivos estáticos)
+#                              ├── /api/*       reverse proxy ─▶ backend:8080
+#                              └── /ws          reverse proxy ─▶ backend:8080
+#                                                    backend ──▶ db:3306
+#
+# Todo bajo un único dominio: sin CORS, sin contenido mixto y wss funcionando.
+# La base de datos NO publica puertos: solo es alcanzable en la red interna.
+#
+# Uso:  docker compose -f docker-compose.prod.yml up -d --build
+# ---------------------------------------------------------------------------
+
+name: emsafe
+
+services:
+
+  db:
+    image: mysql:8.0
+    container_name: emsafe-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?falta MYSQL_ROOT_PASSWORD en .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-emsafe_db}
+      MYSQL_USER: ${MYSQL_USER:?falta MYSQL_USER en .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?falta MYSQL_PASSWORD en .env}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
+    networks: [emsafe-net]
+    # Sin 'ports': MySQL jamás se expone a internet.
+
+  backend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: emsafe-backend:latest
+    container_name: emsafe-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      MYSQL_URL: "jdbc:mysql://db:3306/${MYSQL_DATABASE:-emsafe_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8"
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET en .env}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      CORS_ALLOWED_ORIGINS: "https://${DOMAIN}"
+      APP_PUBLIC_URL: "https://${DOMAIN}"
+      JAVA_OPTS: "-XX:MaxRAMPercentage=70 -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Duser.timezone=America/Lima"
+    networks: [emsafe-net]
+    # Sin 'ports': solo Caddy habla con el backend.
+
+  web:
+    build:
+      context: ../../Front-End
+      dockerfile: Dockerfile
+    image: emsafe-web:latest
+    container_name: emsafe-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      DOMAIN: ${DOMAIN:?falta DOMAIN en .env}
+      ACME_EMAIL: ${ACME_EMAIL:?falta ACME_EMAIL en .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data      # certificados Let's Encrypt: NO borrar este volumen
+      - caddy_config:/config
+    networks: [emsafe-net]
+
+networks:
+  emsafe-net:
+    driver: bridge
+
+volumes:
+  db_data:
+  caddy_data:
+  caddy_config:

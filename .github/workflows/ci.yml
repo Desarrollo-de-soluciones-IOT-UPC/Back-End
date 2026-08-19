@@ -1,0 +1,33 @@
+# CI del backend: compila y valida que la imagen Docker se construya.
+# El despliegue NO va aquí: la VM de Oracle hace pull + build por SSH
+# (ver deploy/README.md). Los workflows *.disabled de esta carpeta son los
+# antiguos de Azure App Service, conservados como referencia histórica.
+
+name: CI — Back-End
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compilar y empaquetar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Compilar
+        run: mvn -B clean package -DskipTests
+
+      - name: Verificar que la imagen Docker se construye
+        run: docker build -t emsafe-backend:ci .
