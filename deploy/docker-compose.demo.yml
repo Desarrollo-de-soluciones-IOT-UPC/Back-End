@@ -1,0 +1,54 @@
+# ---------------------------------------------------------------------------
+# EMSafe — stack de DEMO (sustentaciones), corriendo en tu laptop.
+#
+#   Levanta el BACKEND y el TÚNEL ngrok (ambos como contenedores). La base de
+#   datos es TiDB Cloud (en la nube) y el front vive en Vercel.
+#
+#       Vercel / navegador ─▶ https://<tu-ngrok> ─▶ ngrok(contenedor) ─▶ backend:8080
+#                                                                            │
+#                                                                            ▼
+#                                                                     TiDB Cloud (nube)
+#
+#   ngrok corre DENTRO de Docker a propósito: así usa siempre la última versión
+#   y Windows (Smart App Control) no bloquea ningún .exe del host.
+#
+# Uso:
+#   cp .env.demo.example .env.demo   # y rellena TiDB + Vercel + ngrok + authtoken
+#   docker compose -f docker-compose.demo.yml up -d --build
+#
+# Ver logs:   docker compose -f docker-compose.demo.yml logs -f
+# Apagar:     docker compose -f docker-compose.demo.yml down
+# ---------------------------------------------------------------------------
+
+name: emsafe-demo
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: emsafe-backend:demo
+    container_name: emsafe-backend-demo
+    restart: unless-stopped
+    env_file:
+      - .env.demo
+    environment:
+      SPRING_PROFILES_ACTIVE: demo
+      JAVA_OPTS: "-XX:MaxRAMPercentage=70 -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Duser.timezone=America/Lima"
+    ports:
+      - "8080:8080"   # opcional: para probar Swagger en http://localhost:8080
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: emsafe-ngrok-demo
+    restart: unless-stopped
+    depends_on:
+      - backend
+    env_file:
+      - .env.demo        # aporta NGROK_AUTHTOKEN
+    command:
+      - "http"
+      - "backend:8080"
+      - "--domain=tayna-durable-unsuperiorly.ngrok-free.dev"
+    ports:
+      - "4040:4040"      # panel web de ngrok en http://localhost:4040

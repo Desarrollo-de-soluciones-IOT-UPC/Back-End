@@ -41,5 +41,7 @@ desktop.ini
 
 # ── Despliegue ────────────────────────────────────────────────────────────────
 deploy/.env
+deploy/.env.demo
 deploy/backups/
 !deploy/.env.example
+!deploy/.env.demo.example
