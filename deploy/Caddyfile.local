@@ -1,0 +1,54 @@
+# ---------------------------------------------------------------------------
+# Caddy — variante LOCAL (desarrollo en la laptop).
+#
+# Diferencia clave con el Caddyfile de producción: aquí NO hay dominio ni TLS.
+# Se escucha en :80 dentro del contenedor (publicado como :8090 en el host), en
+# HTTP plano, así que no interviene Let's Encrypt ni hace falta abrir puertos.
+#
+# Lo importante es que se conserva el MISMO truco que en producción: la SPA y la
+# API salen por el MISMO origen. Por eso `environment.prod.ts` puede usar rutas
+# relativas (/api, /ws) y no hay CORS ni contenido mixto que depurar.
+# ---------------------------------------------------------------------------
+
+{
+	# Sin gestión automática de certificados en local.
+	auto_https off
+	admin off
+}
+
+:80 {
+	encode zstd gzip
+
+	# --- API REST -----------------------------------------------------------
+	@api path /api /api/*
+	handle @api {
+		reverse_proxy backend:8080
+	}
+
+	# --- WebSocket (STOMP, telemetría en tiempo real) -----------------------
+	@ws path /ws /ws/*
+	handle @ws {
+		reverse_proxy backend:8080
+	}
+
+	# --- Swagger / OpenAPI --------------------------------------------------
+	@docs path /swagger-ui /swagger-ui/* /v3/api-docs /v3/api-docs/*
+	handle @docs {
+		reverse_proxy backend:8080
+	}
+
+	# --- SPA Angular --------------------------------------------------------
+	# try_files es lo que hace funcionar las rutas profundas: si el navegador
+	# pide /admin/users y ese archivo no existe en disco, se devuelve
+	# index.html y el router de Angular resuelve la ruta en el cliente.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
