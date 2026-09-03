@@ -1,6 +1,6 @@
 package com.emsafe.dashboard.controller;
 
-import com.emsafe.dashboard.dto.AlertDto;
+import com.emsafe.alerting.interfaces.rest.dto.AlertDto;
 import com.emsafe.dashboard.dto.ChartDataDto;
 import com.emsafe.dashboard.dto.ClientRadiationDto;
 import com.emsafe.dashboard.dto.LatestWorkOrderDto;

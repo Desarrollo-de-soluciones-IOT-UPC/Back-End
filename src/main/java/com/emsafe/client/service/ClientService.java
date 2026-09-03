@@ -1,10 +1,12 @@
 package com.emsafe.client.service;
 
 import com.emsafe.client.dto.*;
-import com.emsafe.dashboard.entity.RadiationReading;
-import com.emsafe.dashboard.repository.RadiationReadingRepository;
-import com.emsafe.device.entity.Device;
-import com.emsafe.device.repository.DeviceRepository;
+import com.emsafe.monitoring.domain.model.RadiationReading;
+import com.emsafe.monitoring.domain.repository.RadiationReadingRepository;
+import com.emsafe.device.domain.model.Device;
+import com.emsafe.device.domain.model.DeviceStatus;
+import com.emsafe.device.domain.model.PlugState;
+import com.emsafe.device.domain.repository.DeviceRepository;
 import com.emsafe.shared.domain.model.RadiationLevel;
 import com.emsafe.shared.domain.exception.BadRequestException;
 import com.emsafe.shared.domain.exception.ResourceNotFoundException;
@@ -99,24 +101,24 @@ public class ClientService {
 
     @Transactional(readOnly = true)
     public List<ClientDeviceDto> getDevices(Long clientId) {
-        return deviceRepository.findByClient_IdOrderByIdAsc(clientId).stream()
-                .map(d -> toDeviceDto(d, radiationReadingRepository.findByDeviceIdWithDevice(d.getId())))
+        return deviceRepository.findByClient(clientId).stream()
+                .map(d -> toDeviceDto(d, radiationReadingRepository.findByDevice(d.getId())))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public ClientDeviceDto getDeviceDetail(Long clientId, Long deviceId) {
-        Device d = deviceRepository.findByIdAndClient_Id(deviceId, clientId)
+        Device d = deviceRepository.findByIdAndClient(deviceId, clientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Device", deviceId));
-        return toDeviceDto(d, radiationReadingRepository.findByDeviceIdWithDevice(deviceId));
+        return toDeviceDto(d, radiationReadingRepository.findByDevice(deviceId));
     }
 
     @Transactional(readOnly = true)
     public List<ClientReadingDto> getDeviceReadings(Long clientId, Long deviceId) {
         // Ownership check: throws if the device doesn't belong to this client
-        deviceRepository.findByIdAndClient_Id(deviceId, clientId)
+        deviceRepository.findByIdAndClient(deviceId, clientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Device", deviceId));
-        return radiationReadingRepository.findByDeviceIdWithDevice(deviceId).stream()
+        return radiationReadingRepository.findByDevice(deviceId).stream()
                 .map(this::toReadingDto)
                 .toList();
     }
@@ -128,21 +130,19 @@ public class ClientService {
      */
     @Transactional
     public ClientDeviceDto setDesiredPlug(Long clientId, Long deviceId, String plug) {
-        if (plug == null || !(plug.equalsIgnoreCase("ON") || plug.equalsIgnoreCase("OFF"))) {
-            throw new BadRequestException("plug must be ON or OFF");
-        }
-        Device d = deviceRepository.findByIdAndClient_Id(deviceId, clientId)
+        // La validación ON/OFF vive ahora en el VO PlugState (lanza 400 si no lo es).
+        Device d = deviceRepository.findByIdAndClient(deviceId, clientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Device", deviceId));
-        d.setDesiredPlug(plug.toUpperCase());
+        d.orderPlug(PlugState.fromApi(plug));
         deviceRepository.save(d);
-        return toDeviceDto(d, radiationReadingRepository.findByDeviceIdWithDevice(deviceId));
+        return toDeviceDto(d, radiationReadingRepository.findByDevice(deviceId));
     }
 
     // ─── Readings ───────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public List<ClientReadingDto> getReadings(Long clientId) {
-        return radiationReadingRepository.findByClientIdWithDevice(clientId).stream()
+        return radiationReadingRepository.findByClient(clientId).stream()
                 .map(this::toReadingDto)
                 .toList();
     }
@@ -151,8 +151,8 @@ public class ClientService {
 
     @Transactional(readOnly = true)
     public ClientDashboardDto getDashboard(Long clientId) {
-        List<Device> devices = deviceRepository.findByClient_IdOrderByIdAsc(clientId);
-        List<RadiationReading> readings = radiationReadingRepository.findByClientIdWithDevice(clientId);
+        List<Device> devices = deviceRepository.findByClient(clientId);
+        List<RadiationReading> readings = radiationReadingRepository.findByClient(clientId);
 
         List<ClientDeviceDto> deviceDtos = devices.stream()
                 .map(d -> toDeviceDto(d, readings.stream()
@@ -171,7 +171,7 @@ public class ClientService {
                 : round3(recent.stream().mapToDouble(RadiationReading::getValue).average().orElse(0.0));
         double max = readings.stream().mapToDouble(RadiationReading::getValue).max().orElse(0.0);
         int activeCount = (int) devices.stream()
-                .filter(d -> "active".equalsIgnoreCase(d.getStatus()))
+                .filter(d -> d.getStatus() == DeviceStatus.ACTIVE)
                 .count();
         int alertCount = (int) readings.stream()
                 .filter(r -> !"safe".equals(levelOf(r)))
@@ -220,7 +220,7 @@ public class ClientService {
                 : LocalDate.now().minusDays(29);
 
         List<RadiationReading> readings = radiationReadingRepository
-                .findByClientIdWithDevice(clientId).stream()
+                .findByClient(clientId).stream()
                 .filter(r -> r.getReadingDate() != null && r.getValue() != null
                         && !r.getReadingDate().isBefore(from))
                 .toList();
@@ -268,7 +268,7 @@ public class ClientService {
 
     @Transactional(readOnly = true)
     public List<ClientAlertDto> getAlerts(Long clientId) {
-        return radiationReadingRepository.findByClientIdWithDevice(clientId).stream()
+        return radiationReadingRepository.findByClient(clientId).stream()
                 .filter(r -> !"safe".equals(levelOf(r)))
                 .sorted(Comparator.comparing(ClientService::readingTs).reversed())
                 .map(r -> {
@@ -315,7 +315,7 @@ public class ClientService {
                 d.getName(),
                 d.getType(),
                 d.getLocation(),
-                d.getStatus(),
+                d.getStatus().persistedValue(),
                 d.getSerialNumber(),
                 d.getInstallDate() != null ? d.getInstallDate().toString() : null,
                 latestVal,
@@ -323,7 +323,7 @@ public class ClientService {
                 latest != null && latest.getReadingDate() != null ? latest.getReadingDate().toString() : null,
                 deviceReadings.size(),
                 latest != null ? latest.getPlug() : null,
-                d.getDesiredPlug()
+                d.getDesiredPlug() != null ? d.getDesiredPlug().persistedValue() : null
         );
     }
 

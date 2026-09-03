@@ -1,21 +1,22 @@
 package com.emsafe.dashboard.service;
 
-import com.emsafe.dashboard.dto.AlertDto;
+import com.emsafe.alerting.interfaces.rest.dto.AlertDto;
 import com.emsafe.dashboard.dto.ChartDataDto;
 import com.emsafe.dashboard.dto.ClientRadiationDto;
 import com.emsafe.dashboard.dto.LatestWorkOrderDto;
 import com.emsafe.dashboard.dto.RadiationPointDto;
 import com.emsafe.dashboard.dto.StatsDto;
-import com.emsafe.dashboard.entity.RadiationReading;
-import com.emsafe.dashboard.repository.AlertRepository;
-import com.emsafe.dashboard.repository.RadiationReadingRepository;
+import com.emsafe.monitoring.domain.model.RadiationReading;
+import com.emsafe.alerting.domain.model.AlertType;
+import com.emsafe.alerting.domain.repository.AlertRepository;
+import com.emsafe.monitoring.domain.repository.RadiationReadingRepository;
 import com.emsafe.shared.domain.model.RadiationLevel;
 import com.emsafe.iam.domain.model.Role;
 import com.emsafe.iam.domain.model.User;
 import com.emsafe.iam.domain.repository.UserRepository;
-import com.emsafe.workorder.entity.WorkOrderStatus;
-import com.emsafe.workorder.repository.SensorRepository;
-import com.emsafe.workorder.repository.WorkOrderRepository;
+import com.emsafe.workorder.domain.model.WorkOrderStatus;
+import com.emsafe.workorder.infrastructure.persistence.SensorRepository;
+import com.emsafe.workorder.infrastructure.persistence.WorkOrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -41,9 +42,9 @@ public class DashboardService {
         long activeClients = userRepository.findByRole(Role.CLIENT).stream()
                 .filter(User::isActive)
                 .count();
-        long criticalAlerts = alertRepository.countByType("danger");
+        long criticalAlerts = alertRepository.countByType(AlertType.DANGER);
         long totalSensors = sensorRepository.count();
-        Double radAvg = radiationReadingRepository.findAverage();
+        Double radAvg = radiationReadingRepository.findAverageValue();
         double currentRadAvg = radAvg != null ? Math.round(radAvg * 1000.0) / 1000.0 : 0.0;
 
         return new StatsDto(
@@ -62,7 +63,7 @@ public class DashboardService {
     }
 
     public List<AlertDto> getAlerts() {
-        return alertRepository.findAllByOrderByCreatedAtDesc()
+        return alertRepository.findAllNewestFirst()
                 .stream().map(AlertDto::from).toList();
     }
 
@@ -156,7 +157,7 @@ public class DashboardService {
                                 latest.getDevice().getType(),
                                 latest.getDevice().getSerialNumber(),
                                 latest.getDevice().getLocation(), // zone/room within the facility
-                                latest.getDevice().getStatus(),
+                                latest.getDevice().getStatus().persistedValue(),
                                 latest.getValue(),
                                 RadiationLevel.of(latest.getLevel(), latest.getValue()).apiValue(),
                                 latest.getReadingDate() != null ? latest.getReadingDate().toString() : null

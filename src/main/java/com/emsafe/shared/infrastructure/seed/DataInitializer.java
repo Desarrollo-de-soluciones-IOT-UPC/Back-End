@@ -1,11 +1,13 @@
 package com.emsafe.shared.infrastructure.seed;
 
-import com.emsafe.dashboard.entity.Alert;
-import com.emsafe.dashboard.entity.RadiationReading;
-import com.emsafe.dashboard.repository.AlertRepository;
-import com.emsafe.dashboard.repository.RadiationReadingRepository;
-import com.emsafe.device.entity.Device;
-import com.emsafe.device.repository.DeviceRepository;
+import com.emsafe.alerting.domain.model.Alert;
+import com.emsafe.alerting.domain.model.AlertType;
+import com.emsafe.monitoring.domain.model.RadiationReading;
+import com.emsafe.alerting.domain.repository.AlertRepository;
+import com.emsafe.monitoring.domain.repository.RadiationReadingRepository;
+import com.emsafe.device.domain.model.Device;
+import com.emsafe.device.domain.model.DeviceStatus;
+import com.emsafe.device.domain.repository.DeviceRepository;
 import com.emsafe.history.entity.History;
 import com.emsafe.history.repository.HistoryRepository;
 import com.emsafe.shared.domain.model.RadiationLevel;
@@ -13,8 +15,8 @@ import com.emsafe.iam.domain.model.User;
 import com.emsafe.iam.domain.model.Role;
 import com.emsafe.iam.domain.model.UserStatus;
 import com.emsafe.iam.domain.repository.UserRepository;
-import com.emsafe.workorder.entity.*;
-import com.emsafe.workorder.repository.WorkOrderRepository;
+import com.emsafe.workorder.domain.model.*;
+import com.emsafe.workorder.infrastructure.persistence.WorkOrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -170,101 +172,101 @@ public class DataInitializer implements CommandLineRunner {
                 // 6 sensors inside the research facility
                 Device.builder().name("Sensor EM — Lab. Física Nuclear").type("Sensor")
                         .location("Laboratorio de Física Nuclear — Piso 2")
-                        .status("active").serialNumber("QD-SN-001")
+                        .status(DeviceStatus.ACTIVE).serialNumber("QD-SN-001")
                         .installDate(LocalDate.of(2025, 3, 10)).client(quantum).build(),
 
                 Device.builder().name("Sensor EM — Sala de Investigación A").type("Sensor")
                         .location("Sala de Investigación A — Piso 1")
-                        .status("active").serialNumber("QD-SN-002")
+                        .status(DeviceStatus.ACTIVE).serialNumber("QD-SN-002")
                         .installDate(LocalDate.of(2025, 3, 15)).client(quantum).build(),
 
                 Device.builder().name("Monitor EM — Sala de Servidores").type("Monitor")
                         .location("Sala de Servidores — Sótano")
-                        .status("active").serialNumber("QD-MN-001")
+                        .status(DeviceStatus.ACTIVE).serialNumber("QD-MN-001")
                         .installDate(LocalDate.of(2025, 4, 1)).client(quantum).build(),
 
                 Device.builder().name("Sensor EM — Laboratorio Químico").type("Sensor")
                         .location("Laboratorio Químico — Piso 3")
-                        .status("requires-maintenance").serialNumber("QD-SN-003")
+                        .status(DeviceStatus.REQUIRES_MAINTENANCE).serialNumber("QD-SN-003")
                         .installDate(LocalDate.of(2025, 2, 20)).client(quantum).build(),
 
                 Device.builder().name("Sensor EM — Pasillo Principal").type("Sensor")
                         .location("Pasillo Principal — Piso 1")
-                        .status("active").serialNumber("QD-SN-004")
+                        .status(DeviceStatus.ACTIVE).serialNumber("QD-SN-004")
                         .installDate(LocalDate.of(2025, 4, 5)).client(quantum).build(),
 
                 Device.builder().name("Monitor EM — Aula de Prácticas").type("Monitor")
                         .location("Aula de Prácticas — Piso 2")
-                        .status("inactive").serialNumber("QD-MN-002")
+                        .status(DeviceStatus.INACTIVE).serialNumber("QD-MN-002")
                         .installDate(LocalDate.of(2025, 3, 28)).client(quantum).build(),
 
                 // ── Harbor Medical Center — Av. Javier Prado Oeste 499, San Isidro ──
                 // 7 sensors inside the clinic
                 Device.builder().name("Sensor EM — Sala de Rayos X").type("Sensor")
                         .location("Sala de Rayos X — Piso 1")
-                        .status("active").serialNumber("HM-SN-001")
+                        .status(DeviceStatus.ACTIVE).serialNumber("HM-SN-001")
                         .installDate(LocalDate.of(2025, 1, 20)).client(harbor).build(),
 
                 Device.builder().name("Sensor EM — Suite de Resonancia Magnética").type("Sensor")
                         .location("Suite de Resonancia Magnética — Piso 2")
-                        .status("active").serialNumber("HM-SN-002")
+                        .status(DeviceStatus.ACTIVE).serialNumber("HM-SN-002")
                         .installDate(LocalDate.of(2025, 2, 5)).client(harbor).build(),
 
                 Device.builder().name("Monitor EM — Unidad de Radioterapia").type("Monitor")
                         .location("Unidad de Radioterapia — Piso 3")
-                        .status("active").serialNumber("HM-MN-001")
+                        .status(DeviceStatus.ACTIVE).serialNumber("HM-MN-001")
                         .installDate(LocalDate.of(2025, 1, 30)).client(harbor).build(),
 
                 Device.builder().name("Sensor EM — Sala de Urgencias").type("Sensor")
                         .location("Sala de Urgencias — Piso 1")
-                        .status("active").serialNumber("HM-SN-003")
+                        .status(DeviceStatus.ACTIVE).serialNumber("HM-SN-003")
                         .installDate(LocalDate.of(2025, 4, 1)).client(harbor).build(),
 
                 Device.builder().name("Sensor EM — Pasillo de Oncología").type("Sensor")
                         .location("Pasillo de Oncología — Piso 3")
-                        .status("active").serialNumber("HM-SN-004")
+                        .status(DeviceStatus.ACTIVE).serialNumber("HM-SN-004")
                         .installDate(LocalDate.of(2025, 1, 15)).client(harbor).build(),
 
                 Device.builder().name("Sensor EM — Sala de Espera").type("Sensor")
                         .location("Sala de Espera — Planta Baja")
-                        .status("active").serialNumber("HM-SN-005")
+                        .status(DeviceStatus.ACTIVE).serialNumber("HM-SN-005")
                         .installDate(LocalDate.of(2025, 3, 10)).client(harbor).build(),
 
                 Device.builder().name("Monitor EM — Radiología Intervencionista").type("Monitor")
                         .location("Radiología Intervencionista — Piso 2")
-                        .status("requires-maintenance").serialNumber("HM-MN-002")
+                        .status(DeviceStatus.REQUIRES_MAINTENANCE).serialNumber("HM-MN-002")
                         .installDate(LocalDate.of(2025, 2, 14)).client(harbor).build(),
 
                 // ── Global Pharma Corp — Av. El Sol 455, Villa El Salvador ──
                 // 6 sensors inside the industrial plant
                 Device.builder().name("Sensor EM — Sala de Producción A").type("Sensor")
                         .location("Sala de Producción A — Nave Principal")
-                        .status("active").serialNumber("GP-SN-001")
+                        .status(DeviceStatus.ACTIVE).serialNumber("GP-SN-001")
                         .installDate(LocalDate.of(2025, 2, 28)).client(pharma).build(),
 
                 Device.builder().name("Sensor EM — Control de Calidad").type("Sensor")
                         .location("Laboratorio de Control de Calidad — Piso 1")
-                        .status("requires-maintenance").serialNumber("GP-SN-002")
+                        .status(DeviceStatus.REQUIRES_MAINTENANCE).serialNumber("GP-SN-002")
                         .installDate(LocalDate.of(2025, 3, 22)).client(pharma).build(),
 
                 Device.builder().name("Monitor EM — Almacén de Materias Primas").type("Monitor")
                         .location("Almacén de Materias Primas — Planta Baja")
-                        .status("active").serialNumber("GP-MN-001")
+                        .status(DeviceStatus.ACTIVE).serialNumber("GP-MN-001")
                         .installDate(LocalDate.of(2025, 4, 10)).client(pharma).build(),
 
                 Device.builder().name("Sensor EM — Laboratorio Farmacéutico").type("Sensor")
                         .location("Laboratorio Farmacéutico — Piso 2")
-                        .status("active").serialNumber("GP-SN-003")
+                        .status(DeviceStatus.ACTIVE).serialNumber("GP-SN-003")
                         .installDate(LocalDate.of(2025, 2, 1)).client(pharma).build(),
 
                 Device.builder().name("Sensor EM — Área de Carga").type("Sensor")
                         .location("Área de Carga y Despacho — Planta Baja")
-                        .status("active").serialNumber("GP-SN-004")
+                        .status(DeviceStatus.ACTIVE).serialNumber("GP-SN-004")
                         .installDate(LocalDate.of(2025, 1, 5)).client(pharma).build(),
 
                 Device.builder().name("Monitor EM — Sala de Esterilización").type("Monitor")
                         .location("Sala de Esterilización — Piso 2")
-                        .status("active").serialNumber("GP-MN-002")
+                        .status(DeviceStatus.ACTIVE).serialNumber("GP-MN-002")
                         .installDate(LocalDate.of(2025, 5, 1)).client(pharma).build()
         );
         deviceRepository.saveAll(devices);
@@ -279,31 +281,31 @@ public class DataInitializer implements CommandLineRunner {
     private void seedRadiationReadings() {
         // Quantum Dynamics Lab location: -12.0774, -77.0869 (San Miguel)
         final double QD_LAT = -12.0774, QD_LNG = -77.0869;
-        Device qdSn1 = deviceRepository.findBySerialNumber("QD-SN-001");
-        Device qdSn2 = deviceRepository.findBySerialNumber("QD-SN-002");
-        Device qdMn1 = deviceRepository.findBySerialNumber("QD-MN-001");
-        Device qdSn3 = deviceRepository.findBySerialNumber("QD-SN-003");
-        Device qdSn4 = deviceRepository.findBySerialNumber("QD-SN-004");
-        Device qdMn2 = deviceRepository.findBySerialNumber("QD-MN-002");
+        Device qdSn1 = deviceRepository.findBySerialNumber("QD-SN-001").orElse(null);
+        Device qdSn2 = deviceRepository.findBySerialNumber("QD-SN-002").orElse(null);
+        Device qdMn1 = deviceRepository.findBySerialNumber("QD-MN-001").orElse(null);
+        Device qdSn3 = deviceRepository.findBySerialNumber("QD-SN-003").orElse(null);
+        Device qdSn4 = deviceRepository.findBySerialNumber("QD-SN-004").orElse(null);
+        Device qdMn2 = deviceRepository.findBySerialNumber("QD-MN-002").orElse(null);
 
         // Harbor Medical Center location: -12.0960, -77.0442 (San Isidro)
         final double HM_LAT = -12.0960, HM_LNG = -77.0442;
-        Device hmSn1 = deviceRepository.findBySerialNumber("HM-SN-001");
-        Device hmSn2 = deviceRepository.findBySerialNumber("HM-SN-002");
-        Device hmMn1 = deviceRepository.findBySerialNumber("HM-MN-001");
-        Device hmSn3 = deviceRepository.findBySerialNumber("HM-SN-003");
-        Device hmSn4 = deviceRepository.findBySerialNumber("HM-SN-004");
-        Device hmSn5 = deviceRepository.findBySerialNumber("HM-SN-005");
-        Device hmMn2 = deviceRepository.findBySerialNumber("HM-MN-002");
+        Device hmSn1 = deviceRepository.findBySerialNumber("HM-SN-001").orElse(null);
+        Device hmSn2 = deviceRepository.findBySerialNumber("HM-SN-002").orElse(null);
+        Device hmMn1 = deviceRepository.findBySerialNumber("HM-MN-001").orElse(null);
+        Device hmSn3 = deviceRepository.findBySerialNumber("HM-SN-003").orElse(null);
+        Device hmSn4 = deviceRepository.findBySerialNumber("HM-SN-004").orElse(null);
+        Device hmSn5 = deviceRepository.findBySerialNumber("HM-SN-005").orElse(null);
+        Device hmMn2 = deviceRepository.findBySerialNumber("HM-MN-002").orElse(null);
 
         // Global Pharma Corp location: -12.2100, -76.9500 (Villa El Salvador)
         final double GP_LAT = -12.2100, GP_LNG = -76.9500;
-        Device gpSn1 = deviceRepository.findBySerialNumber("GP-SN-001");
-        Device gpSn2 = deviceRepository.findBySerialNumber("GP-SN-002");
-        Device gpMn1 = deviceRepository.findBySerialNumber("GP-MN-001");
-        Device gpSn3 = deviceRepository.findBySerialNumber("GP-SN-003");
-        Device gpSn4 = deviceRepository.findBySerialNumber("GP-SN-004");
-        Device gpMn2 = deviceRepository.findBySerialNumber("GP-MN-002");
+        Device gpSn1 = deviceRepository.findBySerialNumber("GP-SN-001").orElse(null);
+        Device gpSn2 = deviceRepository.findBySerialNumber("GP-SN-002").orElse(null);
+        Device gpMn1 = deviceRepository.findBySerialNumber("GP-MN-001").orElse(null);
+        Device gpSn3 = deviceRepository.findBySerialNumber("GP-SN-003").orElse(null);
+        Device gpSn4 = deviceRepository.findBySerialNumber("GP-SN-004").orElse(null);
+        Device gpMn2 = deviceRepository.findBySerialNumber("GP-MN-002").orElse(null);
 
         List<RadiationReading> readings = List.of(
             // ── Quantum Dynamics Lab — all at QD lat/lng, zone = room inside lab ──
@@ -412,10 +414,8 @@ public class DataInitializer implements CommandLineRunner {
         int minuteOffset = 0;
         for (RadiationReading r : readings) {
             double uT = Math.round((r.getValue() * 500 + 50) * 10.0) / 10.0;
-            r.setValue(uT);
             // El edge reporta el nivel en MAYÚSCULA; la semilla imita ese contrato.
-            r.setLevel(RadiationLevel.byValue(uT).name());
-            r.setRecordedAt(seedBase.plusMinutes(minuteOffset));
+            r.rescaleSeed(uT, RadiationLevel.byValue(uT).name(), seedBase.plusMinutes(minuteOffset));
             minuteOffset += 7;
         }
         radiationReadingRepository.saveAll(readings);
@@ -704,61 +704,61 @@ public class DataInitializer implements CommandLineRunner {
 
     private void seedAlerts() {
         List<Alert> alerts = List.of(
-                Alert.builder().type("danger").icon("ph-warning-circle")
+                Alert.builder().type(AlertType.DANGER).icon("ph-warning-circle")
                         .title("Pico de radiación anómalo — Miraflores")
                         .description("Sensor #LM-012 en Av. Larco detectó niveles de 240 µT.")
                         .relativeTime("8 min ago")
                         .createdAt(LocalDateTime.now().minusMinutes(8)).build(),
 
-                Alert.builder().type("danger").icon("ph-warning-circle")
+                Alert.builder().type(AlertType.DANGER).icon("ph-warning-circle")
                         .title("Sensor fuera de línea — Hospital Rebagliati")
                         .description("Sensor #LM-007 en la Unidad de Radioterapia perdió conexión.")
                         .relativeTime("25 min ago")
                         .createdAt(LocalDateTime.now().minusMinutes(25)).build(),
 
-                Alert.builder().type("warning").icon("ph-warning")
+                Alert.builder().type(AlertType.WARNING).icon("ph-warning")
                         .title("Nivel en umbral — San Isidro")
                         .description("Sensor #LM-019 registra 190 µT, cerca del límite de precaución.")
                         .relativeTime("1 hour ago")
                         .createdAt(LocalDateTime.now().minusHours(1)).build(),
 
-                Alert.builder().type("info").icon("ph-arrows-clockwise")
+                Alert.builder().type(AlertType.INFO).icon("ph-arrows-clockwise")
                         .title("Calibración automática exitosa")
                         .description("Nodo de red #LM-004 (Callao) recalibrado correctamente.")
                         .relativeTime("2 hours ago")
                         .createdAt(LocalDateTime.now().minusHours(2)).build(),
 
-                Alert.builder().type("success").icon("ph-check-circle")
+                Alert.builder().type(AlertType.SUCCESS).icon("ph-check-circle")
                         .title("Orden completada — Clínica San Pablo")
                         .description("WO-LM-0021 cerrada exitosamente. 6 sensores instalados.")
                         .relativeTime("3 hours ago")
                         .createdAt(LocalDateTime.now().minusHours(3)).build(),
 
-                Alert.builder().type("info").icon("ph-clipboard-text")
+                Alert.builder().type(AlertType.INFO).icon("ph-clipboard-text")
                         .title("Nueva orden de trabajo creada")
                         .description("WO-LM-0025 asignada a Marcus Rivera — Hospital Almenara, La Victoria.")
                         .relativeTime("4 hours ago")
                         .createdAt(LocalDateTime.now().minusHours(4)).build(),
 
-                Alert.builder().type("success").icon("ph-user-plus")
+                Alert.builder().type(AlertType.SUCCESS).icon("ph-user-plus")
                         .title("Nuevo técnico incorporado")
                         .description("Carlos Mendoza agregado al equipo de operaciones Lima Sur.")
                         .relativeTime("6 hours ago")
                         .createdAt(LocalDateTime.now().minusHours(6)).build(),
 
-                Alert.builder().type("danger").icon("ph-warning-circle")
+                Alert.builder().type(AlertType.DANGER).icon("ph-warning-circle")
                         .title("Nivel crítico — Villa El Salvador")
                         .description("Sensor #LM-023 cerca de planta industrial registró 275 µT.")
                         .relativeTime("8 hours ago")
                         .createdAt(LocalDateTime.now().minusHours(8)).build(),
 
-                Alert.builder().type("warning").icon("ph-wifi-slash")
+                Alert.builder().type(AlertType.WARNING).icon("ph-wifi-slash")
                         .title("Conectividad degradada — Los Olivos")
                         .description("Gateway #GW-LM-03 reporta pérdida de paquetes del 18%.")
                         .relativeTime("10 hours ago")
                         .createdAt(LocalDateTime.now().minusHours(10)).build(),
 
-                Alert.builder().type("info").icon("ph-shield-check")
+                Alert.builder().type(AlertType.INFO).icon("ph-shield-check")
                         .title("Auditoría mensual completada")
                         .description("Todos los sensores de la zona Centro Histórico superaron la revisión.")
                         .relativeTime("1 day ago")

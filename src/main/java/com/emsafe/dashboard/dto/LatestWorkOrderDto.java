@@ -1,6 +1,6 @@
 package com.emsafe.dashboard.dto;
 
-import com.emsafe.workorder.entity.WorkOrder;
+import com.emsafe.workorder.domain.model.WorkOrder;
 
 import java.time.LocalDate;
 

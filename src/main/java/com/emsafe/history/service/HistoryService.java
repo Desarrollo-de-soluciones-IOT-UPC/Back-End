@@ -1,18 +1,56 @@
 package com.emsafe.history.service;
 
 import com.emsafe.history.dto.HistoryDto;
+import com.emsafe.history.entity.History;
 import com.emsafe.history.repository.HistoryRepository;
+import com.emsafe.workorder.domain.model.WorkOrder;
+import com.emsafe.workorder.infrastructure.persistence.WorkOrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class HistoryService {
 
+    private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("hh:mm a");
+
     private final HistoryRepository historyRepository;
+    private final WorkOrderRepository workOrderRepository;
+
+    /**
+     * Escribe el acta de servicio de una orden que acaba de cerrarse.
+     *
+     * <p>Lo invoca el suscriptor de {@code WorkOrderCompleted}/{@code WorkOrderCancelled}.
+     * El formato de la hora y la representación del tipo de servicio son conocimiento
+     * de ESTE contexto; antes vivían dentro de {@code WorkOrderService}.
+     */
+    @Transactional
+    public void recordFromWorkOrder(Long workOrderId, String status) {
+        WorkOrder wo = workOrderRepository.findById(workOrderId).orElse(null);
+        if (wo == null) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        historyRepository.save(History.builder()
+                .orderId(wo.getOrderId())
+                .completionDate(now.toLocalDate())
+                .completionTime(now.format(TIME_FMT))
+                .client(wo.getClient())
+                .site(wo.getLocation())
+                .serviceType(wo.getType().displayValue())
+                .technician(wo.getTechnicianName())
+                .technicianInitials(wo.getTechnicianInitials())
+                .status(status)
+                .technicianId(wo.technicianId())
+                .workOrderId(wo.getId())
+                .build());
+    }
 
     /**
      * @param technicianId filter by technician (null = all, for admin portal)
