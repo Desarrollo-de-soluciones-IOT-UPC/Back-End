@@ -5,12 +5,12 @@ import com.emsafe.dashboard.entity.RadiationReading;
 import com.emsafe.dashboard.repository.RadiationReadingRepository;
 import com.emsafe.device.entity.Device;
 import com.emsafe.device.repository.DeviceRepository;
-import com.emsafe.shared.RadiationLevel;
-import com.emsafe.shared.exception.BadRequestException;
-import com.emsafe.shared.exception.ResourceNotFoundException;
-import com.emsafe.user.dto.ChangePasswordRequest;
-import com.emsafe.user.entity.AppUser;
-import com.emsafe.user.repository.UserRepository;
+import com.emsafe.shared.domain.model.RadiationLevel;
+import com.emsafe.shared.domain.exception.BadRequestException;
+import com.emsafe.shared.domain.exception.ResourceNotFoundException;
+import com.emsafe.iam.interfaces.rest.dto.ChangePasswordRequest;
+import com.emsafe.iam.domain.model.User;
+import com.emsafe.iam.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -44,9 +44,11 @@ public class ClientService {
     /** Threshold (µT) above which radiation is considered to exceed the safe limit. */
     private static final double SAFETY_THRESHOLD = RadiationLevel.DANGER_UT;
 
-    /** Smart-edge classification — delegates to the shared helper (edge is the source of truth). */
+    /** Smart-edge classification — delega en el VO compartido (el edge es la fuente de verdad). */
     private static String levelOf(RadiationReading r) {
-        return RadiationLevel.of(r);
+        return r == null
+                ? RadiationLevel.SAFE.apiValue()
+                : RadiationLevel.of(r.getLevel(), r.getValue()).apiValue();
     }
 
     // ─── Profile ────────────────────────────────────────────────────────────
@@ -58,23 +60,23 @@ public class ClientService {
 
     @Transactional
     public ClientProfileDto updateProfile(Long clientId, UpdateClientProfileRequest req) {
-        AppUser u = getClient(clientId);
-        if (StringUtils.hasText(req.name()))     u.setName(req.name());
-        if (StringUtils.hasText(req.phone()))    u.setPhone(req.phone());
-        if (StringUtils.hasText(req.location())) u.setLocation(req.location());
-        if (StringUtils.hasText(req.address()))  u.setAddress(req.address());
-        if (req.latitude() != null)              u.setLatitude(req.latitude());
-        if (req.longitude() != null)             u.setLongitude(req.longitude());
+        User u = getClient(clientId);
+        u.rename(req.name(), null);
+        u.updateStaffDetails(req.phone(), req.location(), null, null, null, null);
+        if (StringUtils.hasText(req.address())) {
+            u.updateClientProfile(req.address(), null, null, null, null, null, null, null);
+        }
+        u.relocate(req.latitude(), req.longitude());
         return ClientProfileDto.from(userRepository.save(u));
     }
 
     @Transactional
     public void changePassword(Long clientId, ChangePasswordRequest req) {
-        AppUser u = getClient(clientId);
+        User u = getClient(clientId);
         if (!passwordEncoder.matches(req.currentPassword(), u.getPasswordHash())) {
             throw new BadRequestException("Current password is incorrect");
         }
-        u.setPasswordHash(passwordEncoder.encode(req.newPassword()));
+        u.changePassword(passwordEncoder.encode(req.newPassword()));
         userRepository.save(u);
     }
 
@@ -86,7 +88,7 @@ public class ClientService {
      */
     @Transactional
     public void deleteAccount(Long clientId, String password) {
-        AppUser u = getClient(clientId);
+        User u = getClient(clientId);
         if (password == null || !passwordEncoder.matches(password, u.getPasswordHash())) {
             throw new BadRequestException("Password is incorrect");
         }
@@ -186,7 +188,9 @@ public class ClientService {
         String overallLevel = deviceDtos.stream()
                 .map(ClientDeviceDto::latestLevel)
                 .filter(l -> l != null)
-                .reduce("safe", RadiationLevel::worse);
+                .map(RadiationLevel::fromApi)
+                .reduce(RadiationLevel.SAFE, RadiationLevel::worseOf)
+                .apiValue();
 
         return new ClientDashboardDto(
                 devices.size(),
@@ -288,7 +292,7 @@ public class ClientService {
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    private AppUser getClient(Long clientId) {
+    private User getClient(Long clientId) {
         if (clientId == null) {
             throw new BadRequestException("Missing user id in token");
         }

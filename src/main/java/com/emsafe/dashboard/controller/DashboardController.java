@@ -7,7 +7,7 @@ import com.emsafe.dashboard.dto.LatestWorkOrderDto;
 import com.emsafe.dashboard.dto.RadiationPointDto;
 import com.emsafe.dashboard.dto.StatsDto;
 import com.emsafe.dashboard.service.DashboardService;
-import com.emsafe.shared.dto.ApiResponse;
+import com.emsafe.shared.interfaces.rest.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

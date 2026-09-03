@@ -4,11 +4,11 @@ import com.emsafe.dashboard.entity.RadiationReading;
 import com.emsafe.dashboard.repository.RadiationReadingRepository;
 import com.emsafe.device.entity.Device;
 import com.emsafe.device.repository.DeviceRepository;
-import com.emsafe.shared.exception.BadRequestException;
-import com.emsafe.shared.exception.ResourceNotFoundException;
+import com.emsafe.shared.domain.exception.BadRequestException;
+import com.emsafe.shared.domain.exception.ResourceNotFoundException;
 import com.emsafe.telemetry.dto.ReadingDto;
 import com.emsafe.telemetry.dto.ReadingIngestRequest;
-import com.emsafe.user.entity.AppUser;
+import com.emsafe.iam.domain.model.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -62,7 +62,7 @@ public class TelemetryService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        AppUser client = device.getClient();
+        User client = device.getClient();
 
         RadiationReading reading = RadiationReading.builder()
                 .readingDate(LocalDate.now())
@@ -142,7 +142,7 @@ public class TelemetryService {
 
     private ReadingDto toDto(RadiationReading r) {
         Device d = r.getDevice();
-        AppUser client = d != null ? d.getClient() : null;
+        User client = d != null ? d.getClient() : null;
         return ReadingDto.builder()
                 .id(r.getId())
                 .serialNumber(r.getSensorId())

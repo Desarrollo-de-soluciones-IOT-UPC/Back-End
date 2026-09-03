@@ -1,7 +1,7 @@
 package com.emsafe.workorder.controller;
 
-import com.emsafe.auth.security.JwtUtil;
-import com.emsafe.shared.dto.ApiResponse;
+import com.emsafe.iam.infrastructure.security.JwtUtil;
+import com.emsafe.shared.interfaces.rest.ApiResponse;
 import com.emsafe.workorder.dto.*;
 import com.emsafe.workorder.service.WorkOrderService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,7 +25,7 @@ public class WorkOrderController {
     // ─── Admin endpoints ───────────────────────────────────────────────────────
 
     @GetMapping("/api/work-orders/paged")
-    public ResponseEntity<ApiResponse<com.emsafe.shared.dto.PageResponse<WorkOrderDto>>> getAllPaged(
+    public ResponseEntity<ApiResponse<com.emsafe.shared.interfaces.rest.PageResponse<WorkOrderDto>>> getAllPaged(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String search,

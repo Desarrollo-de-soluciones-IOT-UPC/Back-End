@@ -1,6 +1,6 @@
 package com.emsafe.device.entity;
 
-import com.emsafe.user.entity.AppUser;
+import com.emsafe.iam.domain.model.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -53,5 +53,5 @@ public class Device {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id")
-    private AppUser client;
+    private User client;
 }

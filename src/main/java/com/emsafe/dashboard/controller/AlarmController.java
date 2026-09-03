@@ -3,7 +3,7 @@ package com.emsafe.dashboard.controller;
 import com.emsafe.dashboard.dto.AlertDto;
 import com.emsafe.dashboard.dto.CreateAlarmRequest;
 import com.emsafe.dashboard.service.AlarmService;
-import com.emsafe.shared.dto.ApiResponse;
+import com.emsafe.shared.interfaces.rest.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

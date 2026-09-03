@@ -1,6 +1,6 @@
 package com.emsafe.client.dto;
 
-import com.emsafe.user.entity.AppUser;
+import com.emsafe.iam.domain.model.User;
 
 import java.time.LocalDate;
 
@@ -21,7 +21,7 @@ public record ClientProfileDto(
         Double longitude,
         LocalDate joinDate
 ) {
-    public static ClientProfileDto from(AppUser u) {
+    public static ClientProfileDto from(User u) {
         return new ClientProfileDto(
                 u.getId(),
                 u.getName(),

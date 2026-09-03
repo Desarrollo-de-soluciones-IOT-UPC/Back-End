@@ -4,9 +4,9 @@ import com.emsafe.dashboard.dto.AlertDto;
 import com.emsafe.dashboard.dto.CreateAlarmRequest;
 import com.emsafe.dashboard.entity.Alert;
 import com.emsafe.dashboard.repository.AlertRepository;
-import com.emsafe.shared.exception.ResourceNotFoundException;
-import com.emsafe.user.entity.AppUser;
-import com.emsafe.user.repository.UserRepository;
+import com.emsafe.shared.domain.exception.ResourceNotFoundException;
+import com.emsafe.iam.domain.model.User;
+import com.emsafe.iam.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,11 +43,11 @@ public class AlarmService {
                 .build();
 
         if (specific && req.clientIds() != null && !req.clientIds().isEmpty()) {
-            List<AppUser> clients = userRepository.findAllById(req.clientIds());
+            List<User> clients = userRepository.findAllById(req.clientIds());
             alert.getRecipientClientIds().addAll(
-                    clients.stream().map(AppUser::getId).toList());
+                    clients.stream().map(User::getId).toList());
             alert.setClientName(clients.stream()
-                    .map(AppUser::getName)
+                    .map(User::getName)
                     .collect(Collectors.joining(", ")));
         } else {
             alert.setClientName("All clients");

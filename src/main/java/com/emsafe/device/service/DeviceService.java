@@ -7,9 +7,9 @@ import com.emsafe.device.dto.DeviceDto;
 import com.emsafe.device.dto.DiscoverableDeviceDto;
 import com.emsafe.device.entity.Device;
 import com.emsafe.device.repository.DeviceRepository;
-import com.emsafe.shared.exception.ResourceNotFoundException;
-import com.emsafe.user.entity.AppUser;
-import com.emsafe.user.repository.UserRepository;
+import com.emsafe.shared.domain.exception.ResourceNotFoundException;
+import com.emsafe.iam.domain.model.User;
+import com.emsafe.iam.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -68,7 +68,7 @@ public class DeviceService {
 
     @Transactional
     public DeviceDto create(CreateDeviceRequest req) {
-        AppUser client = resolveClient(req.clientId());
+        User client = resolveClient(req.clientId());
         Device device = Device.builder()
                 .name(req.name())
                 .type(req.type())
@@ -106,7 +106,7 @@ public class DeviceService {
         deviceRepository.deleteById(id);
     }
 
-    private AppUser resolveClient(Long clientId) {
+    private User resolveClient(Long clientId) {
         if (clientId == null || clientId == 0) return null;
         return userRepository.findById(clientId).orElse(null);
     }

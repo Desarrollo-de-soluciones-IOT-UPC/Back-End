@@ -1,6 +1,6 @@
 package com.emsafe.workorder.entity;
 
-import com.emsafe.user.entity.AppUser;
+import com.emsafe.iam.domain.model.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
@@ -42,7 +42,7 @@ public class WorkOrder {
     // Used to resolve the client's devices in Maintenance / Collection flows.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_user_id")
-    private AppUser clientUser;
+    private User clientUser;
 
     @Column(length = 200)
     private String location;
@@ -58,7 +58,7 @@ public class WorkOrder {
     // Technician reference (nullable — may not be assigned yet)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "technician_id")
-    private AppUser technician;
+    private User technician;
 
     // Denormalized for quick display without JOIN
     @Column(length = 100)

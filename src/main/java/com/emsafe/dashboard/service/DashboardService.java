@@ -9,9 +9,10 @@ import com.emsafe.dashboard.dto.StatsDto;
 import com.emsafe.dashboard.entity.RadiationReading;
 import com.emsafe.dashboard.repository.AlertRepository;
 import com.emsafe.dashboard.repository.RadiationReadingRepository;
-import com.emsafe.shared.RadiationLevel;
-import com.emsafe.user.entity.Role;
-import com.emsafe.user.repository.UserRepository;
+import com.emsafe.shared.domain.model.RadiationLevel;
+import com.emsafe.iam.domain.model.Role;
+import com.emsafe.iam.domain.model.User;
+import com.emsafe.iam.domain.repository.UserRepository;
 import com.emsafe.workorder.entity.WorkOrderStatus;
 import com.emsafe.workorder.repository.SensorRepository;
 import com.emsafe.workorder.repository.WorkOrderRepository;
@@ -38,7 +39,7 @@ public class DashboardService {
     public StatsDto getStats() {
         long pending = workOrderRepository.countByStatus(WorkOrderStatus.PENDING);
         long activeClients = userRepository.findByRole(Role.CLIENT).stream()
-                .filter(u -> "active".equalsIgnoreCase(u.getStatus()))
+                .filter(User::isActive)
                 .count();
         long criticalAlerts = alertRepository.countByType("danger");
         long totalSensors = sensorRepository.count();
@@ -105,7 +106,7 @@ public class DashboardService {
                         r.getLocation(),
                         r.getSensorId(),
                         r.getValue(),
-                        RadiationLevel.of(r),
+                        RadiationLevel.of(r.getLevel(), r.getValue()).apiValue(),
                         r.getReadingDate() != null ? r.getReadingDate().toString() : null
                 ))
                 .toList();
@@ -157,7 +158,7 @@ public class DashboardService {
                                 latest.getDevice().getLocation(), // zone/room within the facility
                                 latest.getDevice().getStatus(),
                                 latest.getValue(),
-                                RadiationLevel.of(latest),
+                                RadiationLevel.of(latest.getLevel(), latest.getValue()).apiValue(),
                                 latest.getReadingDate() != null ? latest.getReadingDate().toString() : null
                         );
                     })
@@ -171,7 +172,9 @@ public class DashboardService {
                     .max().orElse(0.0);
             String level = deviceDtos.stream()
                     .map(ClientRadiationDto.DeviceReadingDto::level)
-                    .reduce("safe", RadiationLevel::worse);
+                    .map(RadiationLevel::fromApi)
+                    .reduce(RadiationLevel.SAFE, RadiationLevel::worseOf)
+                    .apiValue();
 
             result.add(new ClientRadiationDto(
                     clientId,

@@ -19,11 +19,11 @@ public class HistoryService {
      * @param status       filter by status (null = all)
      * @param search       partial search on client or orderId
      */
-    public com.emsafe.shared.dto.PageResponse<HistoryDto> findAllPaged(Long technicianId, String status, String search, int page, int size) {
+    public com.emsafe.shared.interfaces.rest.PageResponse<HistoryDto> findAllPaged(Long technicianId, String status, String search, int page, int size) {
         String statusFilter = StringUtils.hasText(status) ? status.toLowerCase() : null;
         String searchFilter = StringUtils.hasText(search) ? search : null;
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        return com.emsafe.shared.dto.PageResponse.of(
+        return com.emsafe.shared.interfaces.rest.PageResponse.of(
                 historyRepository.searchPaged(technicianId, statusFilter, searchFilter, pageable)
                         .map(HistoryDto::from)
         );

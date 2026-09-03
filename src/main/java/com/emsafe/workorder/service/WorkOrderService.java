@@ -7,14 +7,14 @@ import com.emsafe.device.entity.Device;
 import com.emsafe.device.repository.DeviceRepository;
 import com.emsafe.history.entity.History;
 import com.emsafe.history.repository.HistoryRepository;
-import com.emsafe.shared.exception.BadRequestException;
-import com.emsafe.shared.exception.ResourceNotFoundException;
-import com.emsafe.user.entity.AppUser;
-import com.emsafe.user.repository.UserRepository;
+import com.emsafe.shared.domain.exception.BadRequestException;
+import com.emsafe.shared.domain.exception.ResourceNotFoundException;
+import com.emsafe.iam.domain.model.User;
+import com.emsafe.iam.domain.repository.UserRepository;
 import com.emsafe.workorder.dto.*;
 import com.emsafe.workorder.entity.*;
 import com.emsafe.workorder.repository.WorkOrderRepository;
-import com.emsafe.shared.dto.PageResponse;
+import com.emsafe.shared.interfaces.rest.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -116,14 +116,14 @@ public class WorkOrderService {
             wo.getRequiredTools().addAll(req.requiredTools());
         }
 
-        AppUser clientUser = null;
+        User clientUser = null;
         if (req.clientId() != null && req.clientId() != 0) {
             clientUser = userRepository.findById(req.clientId()).orElse(null);
             wo.setClientUser(clientUser);
         }
 
         if (req.technicianId() != null) {
-            AppUser technician = userRepository.findById(req.technicianId())
+            User technician = userRepository.findById(req.technicianId())
                     .orElseThrow(() -> new ResourceNotFoundException("Technician", req.technicianId()));
             wo.setTechnician(technician);
             wo.setTechnicianName(technician.getName());
@@ -175,7 +175,7 @@ public class WorkOrderService {
                 wo.setTechnicianName(null);
                 wo.setTechnicianInitials(null);
             } else {
-                AppUser technician = userRepository.findById(req.technicianId())
+                User technician = userRepository.findById(req.technicianId())
                         .orElseThrow(() -> new ResourceNotFoundException("Technician", req.technicianId()));
                 wo.setTechnician(technician);
                 wo.setTechnicianName(technician.getName());
@@ -427,7 +427,7 @@ public class WorkOrderService {
                 .stream().map(DeviceDto::from).toList();
     }
 
-    private void raiseOrderCreatedAlert(WorkOrder wo, AppUser clientUser) {
+    private void raiseOrderCreatedAlert(WorkOrder wo, User clientUser) {
         String techPart = StringUtils.hasText(wo.getTechnicianName())
                 ? " assigned to " + wo.getTechnicianName() : "";
         Alert alert = Alert.builder()

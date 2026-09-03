@@ -3,7 +3,7 @@ package com.emsafe.device.controller;
 import com.emsafe.device.dto.CreateDeviceRequest;
 import com.emsafe.device.dto.DeviceDto;
 import com.emsafe.device.service.DeviceService;
-import com.emsafe.shared.dto.ApiResponse;
+import com.emsafe.shared.interfaces.rest.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

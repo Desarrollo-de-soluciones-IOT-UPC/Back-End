@@ -1,6 +1,6 @@
 package com.emsafe.telemetry.controller;
 
-import com.emsafe.shared.dto.ApiResponse;
+import com.emsafe.shared.interfaces.rest.ApiResponse;
 import com.emsafe.telemetry.dto.PlugStateDto;
 import com.emsafe.telemetry.service.TelemetryService;
 import lombok.RequiredArgsConstructor;

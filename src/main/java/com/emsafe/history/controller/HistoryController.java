@@ -1,9 +1,9 @@
 package com.emsafe.history.controller;
 
-import com.emsafe.auth.security.JwtUtil;
+import com.emsafe.iam.infrastructure.security.JwtUtil;
 import com.emsafe.history.dto.HistoryDto;
 import com.emsafe.history.service.HistoryService;
-import com.emsafe.shared.dto.ApiResponse;
+import com.emsafe.shared.interfaces.rest.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +45,7 @@ public class HistoryController {
     }
 
     @GetMapping("/history/paged")
-    public ResponseEntity<ApiResponse<com.emsafe.shared.dto.PageResponse<HistoryDto>>> getHistoryPaged(
+    public ResponseEntity<ApiResponse<com.emsafe.shared.interfaces.rest.PageResponse<HistoryDto>>> getHistoryPaged(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
@@ -54,7 +54,7 @@ public class HistoryController {
     }
 
     @GetMapping("/tech/history/paged")
-    public ResponseEntity<ApiResponse<com.emsafe.shared.dto.PageResponse<HistoryDto>>> getTechHistoryPaged(
+    public ResponseEntity<ApiResponse<com.emsafe.shared.interfaces.rest.PageResponse<HistoryDto>>> getTechHistoryPaged(
             HttpServletRequest request,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,

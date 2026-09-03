@@ -1,6 +1,6 @@
 package com.emsafe.telemetry.controller;
 
-import com.emsafe.shared.dto.ApiResponse;
+import com.emsafe.shared.interfaces.rest.ApiResponse;
 import com.emsafe.telemetry.dto.ReadingDto;
 import com.emsafe.telemetry.dto.ReadingIngestRequest;
 import com.emsafe.telemetry.service.TelemetryService;

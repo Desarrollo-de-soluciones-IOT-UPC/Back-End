@@ -1,11 +1,11 @@
 package com.emsafe.client.controller;
 
-import com.emsafe.auth.security.JwtUtil;
+import com.emsafe.iam.infrastructure.security.JwtUtil;
 import com.emsafe.client.dto.*;
 import com.emsafe.client.service.AssistantService;
 import com.emsafe.client.service.ClientService;
-import com.emsafe.shared.dto.ApiResponse;
-import com.emsafe.user.dto.ChangePasswordRequest;
+import com.emsafe.shared.interfaces.rest.ApiResponse;
+import com.emsafe.iam.interfaces.rest.dto.ChangePasswordRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
