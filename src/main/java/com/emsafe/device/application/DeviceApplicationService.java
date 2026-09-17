@@ -213,6 +213,24 @@ public class DeviceApplicationService {
         events.publish(new PlugOrdered(saved.getId(), saved.getSerialNumber(), desired));
     }
 
+    /**
+     * Orden del relé desde la app del cliente: comprueba que el sensor sea SUYO y
+     * delega en {@link #orderPlug}.
+     *
+     * <p>Existe para cerrar un hueco real: el portal móvil hacía
+     * {@code device.orderPlug(...)} + {@code repository.save(...)} por su cuenta, así que
+     * la orden del usuario <b>nunca publicaba {@code PlugOrdered}</b> — el único camino
+     * por el que un humano acciona el relé era el que no anunciaba el hecho.
+     * La comprobación de propiedad vive aquí porque es una regla de este contexto.
+     */
+    @Transactional
+    public Device orderPlugForOwner(Long deviceId, Long clientId, String plug) {
+        Device device = deviceRepository.findByIdAndClient(deviceId, clientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Device", deviceId));
+        orderPlug(device, PlugState.fromApi(plug));
+        return device;
+    }
+
     @Transactional
     public void delete(Long id) {
         if (!deviceRepository.existsById(id)) {

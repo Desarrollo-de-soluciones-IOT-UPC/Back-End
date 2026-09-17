@@ -5,6 +5,7 @@ import com.emsafe.iam.domain.model.User;
 import com.emsafe.iam.domain.repository.UserRepository;
 import com.emsafe.shared.domain.event.DomainEventPublisher;
 import com.emsafe.shared.domain.exception.ResourceNotFoundException;
+import com.emsafe.workorder.domain.event.ClosedOrderSummary;
 import com.emsafe.workorder.domain.event.MaintenanceStarted;
 import com.emsafe.workorder.domain.event.WorkOrderCancelled;
 import com.emsafe.workorder.domain.event.WorkOrderCompleted;
@@ -126,7 +127,8 @@ public class WorkOrderApplicationService {
         WorkOrder wo = queryService.require(id);
         wo.cancel(reason);
         WorkOrder saved = workOrderRepository.save(wo);
-        events.publish(new WorkOrderCancelled(saved.getId(), saved.getOrderId(), reason));
+        events.publish(new WorkOrderCancelled(saved.getId(), saved.getOrderId(), reason,
+                ClosedOrderSummary.of(saved)));
     }
 
     // ─── Parte del técnico ────────────────────────────────────────────────────
@@ -188,7 +190,7 @@ public class WorkOrderApplicationService {
         // El acta de servicio se escribe en la PRIMERA transición a COMPLETED.
         if (previousStatus != WorkOrderStatus.COMPLETED && saved.isCompleted()) {
             events.publish(new WorkOrderCompleted(saved.getId(), saved.getOrderId(),
-                    saved.getCompletedAt()));
+                    saved.getCompletedAt(), ClosedOrderSummary.of(saved)));
         }
 
         return WorkOrderDetailDto.from(saved, queryService.resolveClientDevices(saved));
@@ -214,7 +216,7 @@ public class WorkOrderApplicationService {
         }
         if (target == WorkOrderStatus.CANCELLED) {
             events.publish(new WorkOrderCancelled(wo.getId(), wo.getOrderId(),
-                    req.cancellationReason()));
+                    req.cancellationReason(), ClosedOrderSummary.of(wo)));
         }
     }
 

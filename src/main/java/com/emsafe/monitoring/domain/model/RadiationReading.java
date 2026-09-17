@@ -142,9 +142,18 @@ public class RadiationReading {
         return device != null ? device.getClient() : null;
     }
 
-    /** Momento de la medición, con la fecha como respaldo para datos antiguos. */
+    /**
+     * Momento de la medición, con la fecha como respaldo para datos antiguos y
+     * {@link LocalDateTime#MIN} si la lectura no tiene ninguno de los dos.
+     *
+     * <p>Ese último caso es el que obligaba a cada consumidor a escribirse su propio
+     * {@code readingTs}: había tres copias idénticas de este método (portal móvil, mapa
+     * de radiación y panel) porque llamar a {@code timestamp()} podía lanzar NPE.
+     * Es la única puerta por la que se debe preguntar "cuándo se midió esto".
+     */
     public LocalDateTime timestamp() {
-        return recordedAt != null ? recordedAt : readingDate.atStartOfDay();
+        if (recordedAt != null) return recordedAt;
+        return readingDate != null ? readingDate.atStartOfDay() : LocalDateTime.MIN;
     }
 
     /** Reescalado de la semilla a µT — uso exclusivo del DataInitializer. */

@@ -32,6 +32,11 @@ public class JpaAlertRepository implements AlertRepository {
     }
 
     @Override
+    public boolean existsUnresolvedByTypeAndSensor(AlertType type, String sensor) {
+        return sensor != null && delegate.existsByTypeAndSensorAndResolvedFalse(type, sensor);
+    }
+
+    @Override
     public boolean existsById(Long id) {
         return delegate.existsById(id);
     }

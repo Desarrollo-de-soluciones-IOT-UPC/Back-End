@@ -8,6 +8,7 @@ import com.emsafe.alerting.interfaces.rest.dto.CreateAlarmRequest;
 import com.emsafe.iam.domain.model.User;
 import com.emsafe.iam.domain.repository.UserRepository;
 import com.emsafe.shared.domain.exception.ResourceNotFoundException;
+import com.emsafe.shared.domain.model.RadiationLevel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,6 +82,48 @@ public class AlarmApplicationService {
                         description, "Just now", null);
 
         alertRepository.save(alert);
+    }
+
+    /**
+     * Alarma por una lectura que superó el umbral crítico.
+     *
+     * <p>Reacciona al evento {@code DangerLevelDetected} de Monitoring. Los puertos
+     * quedaron listos en la fase 5 pero no se conectaron: crear alarmas nuevas es
+     * funcionalidad, no refactor (regla R5 del plan DDD).
+     *
+     * <p><b>Una alarma por episodio, no por lectura.</b> El edge reporta cada pocos
+     * segundos; sin esta guarda, un sensor que se quede en DANGER media hora llenaría
+     * el panel de cientos de avisos idénticos. Mientras la alarma anterior siga sin
+     * resolver, el episodio se considera abierto. Al resolverla, un nuevo pico vuelve
+     * a avisar — que es justo lo que se espera de un panel de alarmas.
+     *
+     * @return {@code true} si se creó la alarma; {@code false} si el episodio ya estaba abierto
+     */
+    @Transactional
+    public boolean raiseDangerDetected(String serialNumber, Double fieldUT,
+                                       Long clientId, String clientName) {
+        if (alertRepository.existsUnresolvedByTypeAndSensor(AlertType.DANGER, serialNumber)) {
+            return false;
+        }
+
+        String sensorLabel = serialNumber != null ? serialNumber : "Unknown sensor";
+        String description = String.format(
+                "%s recorded %s µT (limit %s µT).",
+                sensorLabel,
+                fieldUT != null ? fieldUT : "—",
+                (int) RadiationLevel.DANGER_UT);
+
+        // La alarma se dirige al dueño del sensor; si aún no tiene cliente asignado
+        // (sensor en el pool), la ven todos los clientes.
+        Alert alert = clientId != null
+                ? Alert.forClients(AlertType.DANGER, "ph-warning-octagon",
+                        "Critical radiation level", description, "Just now", serialNumber,
+                        List.of(clientId), clientName)
+                : Alert.forAllClients(AlertType.DANGER, "ph-warning-octagon",
+                        "Critical radiation level", description, "Just now", serialNumber);
+
+        alertRepository.save(alert);
+        return true;
     }
 
     @Transactional

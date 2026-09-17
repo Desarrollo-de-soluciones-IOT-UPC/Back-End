@@ -7,6 +7,7 @@ import com.emsafe.shared.interfaces.rest.PageResponse;
 import com.emsafe.workorder.domain.model.WorkOrder;
 import com.emsafe.workorder.domain.model.WorkOrderStatus;
 import com.emsafe.workorder.domain.model.WorkOrderType;
+import com.emsafe.workorder.infrastructure.persistence.SensorRepository;
 import com.emsafe.workorder.infrastructure.persistence.WorkOrderRepository;
 import com.emsafe.workorder.interfaces.rest.dto.WorkOrderDetailDto;
 import com.emsafe.workorder.interfaces.rest.dto.WorkOrderDto;
@@ -38,6 +39,7 @@ public class WorkOrderQueryService {
             List.of(WorkOrderStatus.PENDING, WorkOrderStatus.IN_PROGRESS);
 
     private final WorkOrderRepository workOrderRepository;
+    private final SensorRepository sensorRepository;
     private final DeviceApplicationService deviceApplicationService;
 
     // ─── Admin ────────────────────────────────────────────────────────────────
@@ -69,6 +71,20 @@ public class WorkOrderQueryService {
 
     public long countByStatus(WorkOrderStatus status) {
         return workOrderRepository.countByStatus(status);
+    }
+
+    // ─── Proyecciones para Reporting ──────────────────────────────────────────
+    // El dashboard necesita estos conteos; los expone el application service para
+    // que Reporting no tenga que alcanzar el repositorio de este contexto.
+
+    /** Sensores registrados en partes de trabajo (entidad interna del agregado). */
+    public long countSensors() {
+        return sensorRepository.count();
+    }
+
+    /** Órdenes cuya ciudad termina en el sufijo dado (", TX", ", CA"...). */
+    public long countByCitySuffix(String suffix) {
+        return workOrderRepository.countByCitySuffix(suffix);
     }
 
     // ─── Técnico ──────────────────────────────────────────────────────────────

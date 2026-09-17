@@ -144,4 +144,48 @@ public class UserApplicationService {
         userRepository.deleteById(id);
         events.publish(new UserDeleted(id, email));
     }
+
+    // ─── Autoservicio del propio usuario (app móvil) ──────────────────────────
+    // Casos de uso en los que el actor y el sujeto son la MISMA persona. Viven en
+    // IAM, no en el portal móvil, porque gestionar una cuenta es de este contexto.
+
+    /**
+     * El cliente edita su propio perfil desde la app. Email, rol y estado quedan fuera
+     * a propósito: cambiarlos no es autoservicio.
+     */
+    @Transactional
+    public void updateOwnClientProfile(Long id, String name, String phone, String location,
+                                       String address, Double latitude, Double longitude) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        user.rename(name, null);
+        user.updateStaffDetails(phone, location, null, null, null, null);
+        if (StringUtils.hasText(address)) {
+            user.updateClientProfile(address, null, null, null, null, null, null, null);
+        }
+        user.relocate(latitude, longitude);
+        userRepository.save(user);
+    }
+
+    /**
+     * Baja voluntaria de la propia cuenta (derecho al olvido), confirmada con la
+     * contraseña actual. Los sensores del cliente se desvinculan solos
+     * (FK {@code ON DELETE SET NULL}) y las lecturas quedan como dato anónimo.
+     *
+     * <p>Antes esto lo hacía el portal móvil llamando a {@code userRepository.delete()}
+     * por su cuenta, y por eso <b>no emitía {@code UserDeleted}</b>: la baja desde la app
+     * era invisible para el resto del sistema, mientras que la del admin sí se anunciaba.
+     * Ahora los dos caminos pasan por aquí y publican el mismo evento.
+     */
+    @Transactional
+    public void deleteOwnAccount(Long id, String password) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        if (password == null || !passwordEncoder.matches(password, user.getPasswordHash())) {
+            throw new BadRequestException("Password is incorrect");
+        }
+        String email = user.getEmail();
+        userRepository.deleteById(id);
+        events.publish(new UserDeleted(id, email));
+    }
 }

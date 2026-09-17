@@ -7,9 +7,13 @@ import java.time.LocalDateTime;
 /**
  * Una orden se completó.
  *
- * <p>Lo consume ServiceRecord para escribir el acta de servicio. Antes, WorkOrder
+ * <p>Lo consume ServiceRecord para emitir el acta de servicio. Antes, WorkOrder
  * escribía directamente en el repositorio de History.
+ *
+ * <p>El {@link ClosedOrderSummary} viaja dentro del evento para que el suscriptor no
+ * tenga que volver a cargar la orden.
  */
-public record WorkOrderCompleted(Long workOrderId, String orderId, LocalDateTime completedAt)
+public record WorkOrderCompleted(Long workOrderId, String orderId, LocalDateTime completedAt,
+                                 ClosedOrderSummary summary)
         implements DomainEvent {
 }

@@ -8,8 +8,9 @@ import com.emsafe.monitoring.domain.repository.RadiationReadingRepository;
 import com.emsafe.device.domain.model.Device;
 import com.emsafe.device.domain.model.DeviceStatus;
 import com.emsafe.device.domain.repository.DeviceRepository;
-import com.emsafe.history.entity.History;
-import com.emsafe.history.repository.HistoryRepository;
+import com.emsafe.servicerecord.domain.model.ServiceRecord;
+import com.emsafe.servicerecord.domain.model.ServiceRecordStatus;
+import com.emsafe.servicerecord.domain.repository.ServiceRecordRepository;
 import com.emsafe.shared.domain.model.RadiationLevel;
 import com.emsafe.iam.domain.model.User;
 import com.emsafe.iam.domain.model.Role;
@@ -37,7 +38,7 @@ public class DataInitializer implements CommandLineRunner {
     private final WorkOrderRepository workOrderRepository;
     private final AlertRepository alertRepository;
     private final RadiationReadingRepository radiationReadingRepository;
-    private final HistoryRepository historyRepository;
+    private final ServiceRecordRepository serviceRecordRepository;
     private final DeviceRepository deviceRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -54,7 +55,7 @@ public class DataInitializer implements CommandLineRunner {
         seedRadiationReadings();
         seedWorkOrders();
         seedAlerts();
-        seedHistory();
+        seedServiceRecords();
         log.info("Database seeding complete.");
     }
 
@@ -768,9 +769,9 @@ public class DataInitializer implements CommandLineRunner {
         log.info("Seeded {} alerts", alerts.size());
     }
 
-    // ─── History ──────────────────────────────────────────────────────────────
+    // ─── Actas de servicio (historial) ────────────────────────────────────────
 
-    private void seedHistory() {
+    private void seedServiceRecords() {
         User marcus = userRepository.findByEmail("marcus@emsafe.com").orElse(null);
         User sarah = userRepository.findByEmail("s.jenkins@field.emsafe.com").orElse(null);
         User elena = userRepository.findByEmail("e.rodriguez@field.emsafe.com").orElse(null);
@@ -779,7 +780,7 @@ public class DataInitializer implements CommandLineRunner {
         Long sarahId = sarah != null ? sarah.getId() : null;
         Long elenaId = elena != null ? elena.getId() : null;
 
-        List<History> records = List.of(
+        List<ServiceRecord> records = List.of(
                 hist("#WO-LM-0021", LocalDate.of(2026, 5, 25), "14:30 PM",
                         "Clínica San Pablo", "Av. Javier Prado Este 499, San Borja",
                         "Installation", "Marcus Rivera", "MR", "completed", marcusId),
@@ -844,8 +845,8 @@ public class DataInitializer implements CommandLineRunner {
                         "Refinería La Pampilla", "Km 25 Panamericana Norte, Ventanilla",
                         "Installation", "Sarah Jenkins", "SJ", "cancelled", sarahId)
         );
-        historyRepository.saveAll(records);
-        log.info("Seeded {} history records", records.size());
+        serviceRecordRepository.saveAll(records);
+        log.info("Seeded {} service records", records.size());
     }
 
     // ─── Builder helpers ──────────────────────────────────────────────────────
@@ -910,14 +911,10 @@ public class DataInitializer implements CommandLineRunner {
                 .event(event).logTime(time).workOrder(wo).build();
     }
 
-    private History hist(String orderId, LocalDate date, String time,
-                          String client, String site, String serviceType,
-                          String technician, String initials, String status, Long technicianId) {
-        return History.builder()
-                .orderId(orderId).completionDate(date).completionTime(time)
-                .client(client).site(site).serviceType(serviceType)
-                .technician(technician).technicianInitials(initials)
-                .status(status).technicianId(technicianId)
-                .build();
+    private ServiceRecord hist(String orderId, LocalDate date, String time,
+                               String client, String site, String serviceType,
+                               String technician, String initials, String status, Long technicianId) {
+        return ServiceRecord.historical(orderId, date, time, client, site, serviceType,
+                technician, initials, ServiceRecordStatus.fromPersisted(status), technicianId);
     }
 }

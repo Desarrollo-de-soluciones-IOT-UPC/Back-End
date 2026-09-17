@@ -12,4 +12,6 @@ interface SpringDataAlertRepository extends JpaRepository<Alert, Long> {
     List<Alert> findAllByOrderByCreatedAtDesc();
 
     long countByType(AlertType type);
+
+    boolean existsByTypeAndSensorAndResolvedFalse(AlertType type, String sensor);
 }
