@@ -8,7 +8,10 @@ import org.springframework.test.context.TestPropertySource;
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = {
-        "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
+        // NON_KEYWORDS=VALUE: la columna `radiation_readings.value` existe desde la V1,
+        // pero H2 2.x trata VALUE como palabra reservada y rechaza el CREATE TABLE que
+        // genera ddl-auto. MySQL, que es la BD real, no tiene ese problema.
+        "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;NON_KEYWORDS=VALUE",
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
